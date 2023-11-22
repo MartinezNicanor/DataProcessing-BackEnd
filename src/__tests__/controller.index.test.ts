@@ -1,4 +1,4 @@
-import { Request, Response } from 'express'; // Assuming you are using Express
+import { Request, Response } from 'express'; 
 import { getIndexPage } from '../controller/index';
 
 // Mock Express Request and Response objects
