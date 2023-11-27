@@ -9,4 +9,7 @@ module.exports = {
     "transform": {
       "^.+\\.(ts|tsx)$": "ts-jest"
     },
+    testEnvironmentOptions: {
+      url: 'http://localhost:3000',
+    },
   }

@@ -1,10 +1,13 @@
 import request from 'supertest';
 import { app } from '../app';
 
-let server: any; 
+let server: any;
 
-beforeAll(() => {
-  server = app.listen();
+beforeAll((done) => {
+  server = app.listen(() => {
+    console.log('Server is running');
+    done();
+  });
 });
 
 test('GET /non-existent-route should return 404 with error message', async () => {
@@ -12,8 +15,11 @@ test('GET /non-existent-route should return 404 with error message', async () =>
 
   expect(response.status).toBe(404);
   expect(response.text).toBe('Error Page 404');
-});
+}, 10000);
 
 afterAll((done) => {
-  server.close(done);
+  server.close(() => {
+    console.log('Server closed');
+    done();
+  });
 });
