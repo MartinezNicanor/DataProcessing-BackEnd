@@ -27,5 +27,4 @@ describe('GET /', () => {
     expect(response.body).toEqual({ message: 'Index Page is Working' });
   });
 
-  // You can add more tests as needed
 });

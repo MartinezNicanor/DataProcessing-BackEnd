@@ -1,8 +1,15 @@
-import { app } from './app'
+import app from './app';
 
-//seperate server file to prevent openhandle testing problem w jest
-
-const port = process.env.PORT || 3000;
+const port: number = parseInt(process.env.PORT!) || 3000;
+console.log(`Using port: ${port}`);
 
 const server = app.listen(port, () => console.log(`server is running on port ${port}`));
 
+// Handle server termination gracefully
+process.on('SIGTERM', () => {
+    console.info('SIGTERM signal received.');
+    console.log('Closing http server.');
+    server.close(() => {
+        console.log('Http server closed.');
+    });
+});
