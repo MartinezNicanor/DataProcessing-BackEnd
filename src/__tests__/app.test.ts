@@ -17,6 +17,12 @@ test('GET /non-existent-route should return 404 with error message', async () =>
   expect(response.text).toBe('Error Page 404');
 }, 10000);
 
+test('GET /favicon should return 204', async () => {
+  const response = await request(app).get('/favicon.ico');
+
+  expect(response.status).toBe(204);
+})
+
 afterAll((done) => {
   server.close(() => {
     console.log('Server closed');

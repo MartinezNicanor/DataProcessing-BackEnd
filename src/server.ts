@@ -6,7 +6,7 @@ console.log(`Using port: ${port}`);
 const server = app.listen(port, () => console.log(`server is running on port ${port}`));
 
 // Handle server termination gracefully
-process.on('SIGTERM', () => {
+process.on('SIGINT', () => {
     console.info('SIGTERM signal received.');
     console.log('Closing http server.');
     server.close(() => {
