@@ -5,13 +5,40 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import morgan from 'morgan';
 import { TINYINT } from 'sequelize';
+import pgPromise from 'pg-promise' ;
+import { IDatabase, IMain } from 'pg-promise';
+import { QueryFile, IQueryFileOptions } from 'pg-promise';
 
 dotenv.config();
 
 //Initialize app
 const app = express(); 
 
+// Load and initialize pg-promise
+const pgp: IMain = pgPromise({});
+const dbConfig = {
+  user: process.env.POSTGRES_USER,
+  password: process.env.POSTGRES_PASSWORD,
+  host: 'localhost',
+  port: 5432,
+  database: 'netflix',
+};
+const db: IDatabase<any> = pgp(dbConfig);
 
+// Example function to run a simple query
+async function getCountry(countryId: number) {
+    try {
+        const country: string = await db.one('SELECT * FROM country WHERE country_id = $1', countryId);
+        console.log(country);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+getCountry(1);
+getCountry(2);
+
+parseInt(process.env.PORT!)
 // Middlewares
 app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing
