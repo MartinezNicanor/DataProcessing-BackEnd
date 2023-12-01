@@ -49,9 +49,16 @@ app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing
 app.use(morgan('dev')) // Logger
 
+
 // Routes
+const registerRoutes = require('./routes/register')
+app.use("/register", registerRoutes);
+
+
+//Test Route
 const indexRoutes = require('./routes/index');
 app.use("/", indexRoutes);
+
 
 //favicon.ico automatic request handler
 app.get('/favicon.ico', (req : Request, res : Response) => {
