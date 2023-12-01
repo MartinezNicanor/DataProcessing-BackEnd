@@ -32,6 +32,9 @@ async function getCountry(countryId: number) {
         console.log(country);
     } catch (error) {
         console.error('Error:', error);
+    } finally {
+        console.log("DB CLOSED")
+        pgp.end();
     }
 }
 
@@ -39,6 +42,8 @@ getCountry(1);
 getCountry(2);
 
 parseInt(process.env.PORT!)
+
+
 // Middlewares
 app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing

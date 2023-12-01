@@ -21,7 +21,7 @@ test('GET /favicon should return 204', async () => {
   const response = await request(app).get('/favicon.ico');
 
   expect(response.status).toBe(204);
-})
+});
 
 afterAll((done) => {
   server.close(() => {
