@@ -51,7 +51,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   //hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const token = jwtTokenGenerator('30m', email, hashedPassword);
+  const token = jwtTokenGenerator('30m', 'email', email, 'password', hashedPassword);
 
 
   //TODO: IMPLEMENT THE FOLLOWING LOGIC LATER HERE WHEN DB WAS UPDATED WITH A VERIFICATION TABLE
@@ -91,7 +91,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
     
     res.status(200).json({
     message: `${token}`,
-    othermessage: `${userData}`
+    othermessage: `${userData['email']}`
   })
 
   }
