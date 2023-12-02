@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import * as bcrypt from 'bcryptjs';
 import jwtTokenGenerator from '../utils/jwt.generator'
-import  sendMail from '../utils/email.sender';
+import sendMail from '../utils/email.sender';
+import jwt from 'jsonwebtoken';
 
 //TODO: Register -> Check for valid register info, -> Check if user exists(email) -> Generate JWT token -> Send Email 
 export const postRegisterUser = async (req: Request, res: Response): Promise<void> => {
@@ -63,20 +64,46 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   */
 
   //send email
-    try {
-      const info = await sendMail(email,'Account Verification','register/verification/', token, 'Verify Your account! This link is valid for 30 min');
-      console.log('Email sent: ', info.response);
-    } catch (err) {
-      console.log('Error sending email: ', err);
-      return;
-    }
-  
-    //! CHANGE MESSAGE HERE TO NORMAL
+  try {
+    const info = await sendMail(email, 'Account verification!', 'register/verification/', token, 'Verify Your account! This link is valid for 30 min');
+    console.log('Email sent: ', info.response);
+  } catch (err) {
+    console.log('Error sending email: ', err);
+    return;
+  }
+
+  //! CHANGE MESSAGE HERE TO NORMAL
   res.status(200).json({
     message: `Register is working and email is ${email} and password is ${password} and the hasehdPassword is : ${hashedPassword} and 
     the JWT token is ${token}`,
   });
 };
+
+
+export const getVerifyUser = async (req: Request, res: Response): Promise<void> => {
+
+  const token: string = req.params.token!;
+
+  try{
+    const decode = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+
+    const userData = decode.data;
+    
+    res.status(200).json({
+    message: `${token}`,
+    othermessage: `${userData}`
+  })
+
+  }
+  catch (err) {
+    res.status(400).json({
+      error: 'JWT malformed'
+    })
+    return;
+  }
+
+}
+
 
 function isValidEmail(email: string): Boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

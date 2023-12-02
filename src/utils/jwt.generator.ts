@@ -18,6 +18,4 @@ function jwtTokenGenerator(time : string , ...args : string[]): string {
 
 }
 
-
-
 export default jwtTokenGenerator;

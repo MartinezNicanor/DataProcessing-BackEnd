@@ -23,7 +23,7 @@ async function sendEmail(to: string, subject: string, path: string, token: strin
     to: to,
     subject: subject,
     text : '',
-    html: `<p>Click <a href="http://localhost:3000/${path}?token=${token}">here</a> ${message}</p>`
+    html: `<p>Click <a href="http://localhost:3000/${path}${token}">here</a> ${message}</p>`
   };
 
   // Send email
