@@ -76,7 +76,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   });
 };
 
-// account verification logic
+// Account verification logic
 export const getVerifyUser = async (req: Request, res: Response): Promise<void> => {
 
   //get token from url

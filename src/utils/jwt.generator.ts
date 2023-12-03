@@ -31,7 +31,7 @@ function jwtTokenGenerator(time : string , ...args : string[]): string {
     }
 
     if(args.length % 2 !== 0){
-        throw new Error("Make sure each key has a value!")
+        throw new Error("Make sure each key has a value!");
     }
 
     const data : {[key : string]: string } = {}

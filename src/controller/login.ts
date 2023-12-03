@@ -86,3 +86,7 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
     }
 
 };
+
+export const postPasswordResetLink = async (req: Request, res: Response): Promise<void> => {
+
+};
