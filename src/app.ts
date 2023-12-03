@@ -37,6 +37,8 @@ app.use(morgan('dev')) // Logger
 const registerRoutes = require('./routes/register')
 app.use("/register", registerRoutes);
 
+const loginRoutes = require('./routes/login')
+app.use("/login", loginRoutes);
 
 //Test Route
 const indexRoutes = require('./routes/index');

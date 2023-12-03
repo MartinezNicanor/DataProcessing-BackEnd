@@ -9,9 +9,9 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.MAILING_SERVICE_ADDRESS,
     pass: process.env.MAILING_SERVICE_APP_PASSWORD,
-  }, // Use secure connection
+  }, 
   tls: {
-    rejectUnauthorized: false, // Disable certificate validation (useful for testing, but not recommended for production)
+    rejectUnauthorized: false, 
   },
 });
 

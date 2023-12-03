@@ -4,8 +4,8 @@ import * as bcrypt from 'bcryptjs';
 import jwtTokenGenerator from '../utils/jwt.generator'
 import sendMail from '../utils/email.sender';
 import jwt from 'jsonwebtoken';
+import { isValidEmail, isValidPassword } from '../utils/email.pass.validators'
 
-//TODO: Register -> Check for valid register info, -> Check if user exists(email) -> Generate JWT token -> Send Email 
 export const postRegisterUser = async (req: Request, res: Response): Promise<void> => {
 
   const email: string = req.body.email;
@@ -41,7 +41,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     }
 
   } catch (err) {
-    console.error(err);
+    console.log(err);
     res.status(500).json({
       error: "Internal Server Error"
     });
@@ -51,16 +51,15 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   //hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const token = jwtTokenGenerator('30m', 'email', email, 'password', hashedPassword);
+  //generate token
+  const token = jwtTokenGenerator('30m', 'email', email, 'hashedpassword', hashedPassword);
 
 
   //TODO: IMPLEMENT THE FOLLOWING LOGIC LATER HERE WHEN DB WAS UPDATED WITH A VERIFICATION TABLE
 
   /*
       A verification table is needed here which stores the user email when they register and the generated JWT token, 
-      
       Logic needs to be written here in order to make a db request to check if the email already has a JWT token which has not yet been exipred
-      
   */
 
   //send email
@@ -72,28 +71,30 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  //! CHANGE MESSAGE HERE TO NORMAL
   res.status(200).json({
-    message: `Register is working and email is ${email} and password is ${password} and the hasehdPassword is : ${hashedPassword} and 
-    the JWT token is ${token}`,
+    message: `Register succesful, verification email sent`,
   });
 };
 
-
+// account verification logic
 export const getVerifyUser = async (req: Request, res: Response): Promise<void> => {
 
+  //get token from url
   const token: string = req.params.token!;
 
-  try{
+  //verify token and activate account in db
+  try {
     const decode = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
-
     const userData = decode.data;
-    
-    res.status(200).json({
-    message: `${token}`,
-    othermessage: `${userData['email']}`
-  })
+    const email = userData['email'];
+    const hashedPassword = userData['hashedpassword'];
 
+    //TODO implement user creation here using info stored in jwt token
+
+    res.status(200).json({
+      message: 'Account verified successfully'
+    })
+    return;
   }
   catch (err) {
     res.status(400).json({
@@ -101,21 +102,4 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
     })
     return;
   }
-
-}
-
-
-function isValidEmail(email: string): Boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-//! DONT FORGET TO REMOVE THE PASSOWORD OPTION WHICH IS FOR TESTING
-function isValidPassword(password: string): Boolean {
-  //regex for One capital, one lowercase letter one number, one special character and at least 6 characters
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
-  if (password == "password") {
-    return true;
-  }
-  return passwordRegex.test(password);
 }
