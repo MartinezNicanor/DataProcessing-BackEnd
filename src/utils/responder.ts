@@ -31,6 +31,8 @@ const data: {} = {"some": "info"}
 */
 
 
+
+
 function responder(res: Response, status: number, type: string, ...args: any[]): void {
 
     const data: { [key: string]: string } = {}
@@ -40,6 +42,21 @@ function responder(res: Response, status: number, type: string, ...args: any[]):
         const value = args[i + 1];
         data[key] = value;
     }
+
+    if(res.req?.method === 'GET'){
+
+        //TODO: Normal response should be xml but now if the Accept : */* it will default to xml
+
+        if(res.req.accepts('application/xml')){
+            res.status(status).setHeader('Content-Type', 'application/xml');
+            res.send(xml(data));
+            return;
+        }
+        res.status(status).json(data);
+        return;
+    }
+
+
     if (type === 'application/xml') {
         res.status(status).setHeader('Content-Type', type);
         res.send(xml(data));

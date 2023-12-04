@@ -9,24 +9,29 @@ import responder from '../utils/responder';
 
 export const postRegisterUser = async (req: Request, res: Response): Promise<void> => {
 
-  const email: string = req.body.email;
-  const password: string = req.body.password;
-  const contentType: string = req.headers['content-type']!
+  let email: string = ''
+  let password: string = ''
+
+  const contentType: string = req.headers['content-type']!;
+
+  if(contentType === 'application/xml'){
+    email = req.body.root.email[0]
+    password = req.body.root.password[0]
+  } else {
+    email = req.body.email!;
+    password = req.body.password!;
+  }
 
   //Validate email
   if (!isValidEmail(email)) {
-    responder(res, 400, contentType,'error', 'Invalid email address. Please make sure that the input values are valid.' )
-    res.status(400).json({
-      error: "Invalid email address. Please make sure that the input values are valid."
-    });
+    console.log(email, password, isValidEmail(email))
+    responder(res, 400, contentType, 'error', 'Invalid email address. Please make sure that the input values are valid.')
     return;
   }
 
   //Validate password
   if (!isValidPassword(password)) {
-    res.status(400).json({
-      error: "Invalid password. Please make sure that the input values are valid."
-    });
+    responder(res, 400, contentType, 'error', 'Invalid password. Please make sure that the input values are valid')
     return;
   }
 
@@ -37,17 +42,13 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     });
 
     if (user) {
-      res.status(409).json({
-        error: "Email address has already been registered"
-      });
+      responder(res, 409, contentType, 'error', 'Email address has already been registered')
       return;
     }
 
   } catch (err) {
     console.log(err);
-    res.status(500).json({
-      error: "Internal Server Error"
-    });
+    responder(res, 500, contentType, 'error', 'Internal Server Error')
     return;
   }
 
@@ -69,16 +70,12 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   try {
     const info = await sendMail(email, 'Account verification!', 'register/verification/', token, 'Verify Your account! This link is valid for 30 min');
     console.log('Email sent: ', info.response);
-    res.status(200).json({
-      message: `Register succesful, verification email sent`,
-    });
+    responder(res, 200, contentType, 'message', 'Register successfull, verification email sent')
     return;
   } catch (err) {
     console.log('Error sending email: ', err);
-    res.status(500).json({
-      error: "Error sending email"
-  })
-  return;
+    responder(res, 500, contentType, 'error', 'Error sending email')
+    return;
   }
 };
 
@@ -87,33 +84,26 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
 
   //get token from url
   const token: string = req.params.token!;
+  const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+  const userData: jwt.JwtPayload = decodedToken.data;
+  const contentType: string = req.headers['content-type']!
+  const email: string = userData['email'];
+  const hashedPassword: string = userData['hashedpassword'];
 
   //verify token and activate account in db
   try {
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
-    const userData : jwt.JwtPayload = decodedToken.data;
-    const email : string = userData['email'];
-    const hashedPassword : string = userData['hashedpassword'];
-
     //verify that the user did not insert an authorization token into the url or something else
     if (userData['purpose'] !== 'account-verification') {
-      res.status(401).json({
-        error: "Incorrect JWT token"
-      });
+      responder(res, 401, contentType, 'error', 'Incorrect JWT token');
       return;
     }
 
     //TODO implement user creation here using info stored in jwt token
-
-    res.status(200).json({
-      message: 'Account verified successfully'
-    })
+    responder(res, 200, contentType, 'message', 'Account verified successfully')
     return;
   }
   catch (err) {
-    res.status(400).json({
-      error: 'JWT malformed'
-    });
+    responder(res, 400, contentType, 'error', 'JWT malformed')
     return;
   }
 }

@@ -5,6 +5,7 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import morgan from 'morgan';
 import {db, pgp} from './db';
+import xmlParser from 'express-xml-bodyparser';
 
 dotenv.config();
 
@@ -30,7 +31,8 @@ parseInt(process.env.PORT!)
 // Middlewares
 app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing
-app.use(morgan('dev')) // Logger
+app.use(morgan('dev')); // Logger
+app.use(xmlParser());
 
 
 // Routes
