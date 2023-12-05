@@ -38,8 +38,24 @@ async function getCountry(countryId: number) {
     }
 }
 
+async function addCountry(countryName: string) {
+    try {
+        await db.none('INSERT INTO Country (country_name) VALUES  ($1)', countryName);
+        console.log("Success");
+    } catch (error) {
+        console.error('Error:', error);
+    } finally {
+        console.log("DB CLOSED")
+        pgp.end();
+    }
+}
+
+
 getCountry(1);
 getCountry(2);
+addCountry('Germany');
+
+
 
 parseInt(process.env.PORT!)
 

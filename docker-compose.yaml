@@ -1,18 +1,18 @@
 version: "2"
 services:
-  node:
-    image: node  
-    container_name: dataprocessing-backend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - db
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-    volumes:
-      - C:/Users/zsomb/OneDrive/Desktop/University/Projects/DataProcessing-BackEnd:/usr/src/app
-    command: npm run dev
+  # node:
+  #   image: node  
+  #   container_name: dataprocessing-backend
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - db
+  #   environment:
+  #     - NODE_ENV=development
+  #     - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  #   volumes:
+  #     - C:/Users/zsomb/OneDrive/Desktop/University/Projects/DataProcessing-BackEnd:/usr/src/app
+  #   command: npm run dev
 
   db:
     image: postgres:latest
@@ -24,11 +24,11 @@ services:
     ports:
       - "5432:5432"
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
+  # adminer:
+  #   image: adminer
+  #   restart: always
+  #   ports:
+  #     - 8080:8080
 
 
 # version: "2"
