@@ -27,13 +27,12 @@ getCountry(2);
 
 parseInt(process.env.PORT!)
 
-
 // Middlewares
 app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing
 app.use(morgan('dev')); // Logger
-app.use(xmlParser());
 
+//TODO: ADD REFRESH TOKEN PATH
 
 // Routes
 const registerRoutes = require('./routes/register')
@@ -41,6 +40,9 @@ app.use("/register", registerRoutes);
 
 const loginRoutes = require('./routes/login')
 app.use("/login", loginRoutes);
+
+const accountRoutes = require('./routes/account')
+app.use("/account", accountRoutes)
 
 //Test Route
 const indexRoutes = require('./routes/index');

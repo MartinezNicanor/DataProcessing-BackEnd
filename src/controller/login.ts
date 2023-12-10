@@ -5,8 +5,9 @@ import sendMail from '../utils/email.sender';
 import { db } from '../db';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import responder from '../utils/responder';
 
-export const postLoginUser = async (req: Request, res: Response): Promise<void> => {
+export const patchLoginUser = async (req: Request, res: Response): Promise<void> => {
 
     const email: string = req.body.email!;
     const password: string = req.body.password!;
@@ -19,24 +20,20 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
         profile_id: number;
         first_name: string;
         last_name: string;
+        numb_of_attempts: number;
     }
 
     // Validate email
     if (!isValidEmail(email)) {
-        res.status(400).json({
-            error: "Invalid email address. Please make sure that the input values are valid."
-        });
+        responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.');
         return;
     }
 
     //Validate password
     if (!isValidPassword(password)) {
-        res.status(400).json({
-            error: "Invalid password. Please make sure that the input values are valid."
-        });
+        responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid.');
         return;
     }
-
 
     //Fetch user object from DB
     try {
@@ -46,52 +43,51 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
 
         //Check if user exists
         if (!userObject) {
-            res.status(401).json({
-                error: "There is no user account associated with this email address"
-            })
+            responder(res, 401, 'error', 'There is no user account associated with this email address');
             return;
         }
 
         //Check if user is not blocked
         if (userObject.blocked) {
-            res.status(403).json({
-                error: "User account is currently blocked, please reset password to activate"
-            });
+            responder(res, 403, 'error', 'User account is currently blocked, please reset password');
+            return;
+        }
+
+        //TODO Block User if they try to log in more then 3 times
+        if (userObject.numb_of_attempts >= 3) {
+            await db.none('SELECT * FROM account ')
+            responder(res, 401, 'error', 'User account is currently blocked, please reset password');
             return;
         }
 
         //Check if password is correct
         const passwordMatch: boolean = await bcrypt.compare(password, userObject.password)
 
-
         //TODO: Implement a counter to see how many times the user tried to login with wrong password
         //TODO: After 3 wrong attempts block them
 
         //check if the passwordMatch if false
         if (!passwordMatch) {
-            res.status(401).json({
-                error: "Invalid user credentials"
-            });
+            //Update user number of attempts
+
+            //TODO: CHECK LAST Login Attempt IN DB IS MORE THAN 24H AGO, IF SO RESET THE NUMBER OF ATTEMPTS TO 0 AND SET LAST LOgin attempt TO TODAY
+            //TODO: MAKE A REQUEST TO DB TO INCREASE NUMBER OF ATTEMPTS
+
+            responder(res, 401, 'error', 'Invalid user credentials')
             return;
         }
 
         // Generate JWT token for authentication and send it back to user
         const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'firstName', userObject.first_name, 'lastName', userObject.last_name, 'purpose', 'authentication');
 
-        res.status(200).json({
-            message: "Successfull login!",
-            token: token
-        })
+        responder(res, 200, 'message', 'Successfull login!', 'token', token)
         return;
 
     } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error')
         console.log(err);
-        res.status(500).json({
-            error: "Internal Server Error"
-        });
         return;
     }
-
 };
 
 export const postPasswordResetLink = async (req: Request, res: Response): Promise<void> => {
@@ -109,9 +105,7 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
     //Validate email
     if (!isValidEmail(email)) {
-        res.status(400).json({
-            error: "Invalid email address. Please make sure that the input values are valid."
-        });
+        responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.');
         return;
     }
 
@@ -122,9 +116,7 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
         });
 
         if (!userObject) {
-            res.status(401).json({
-                error: "User is not registered"
-            })
+            responder(res, 401, 'error', 'User is not registered')
             return;
         }
 
@@ -133,48 +125,44 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
             const token = jwtTokenGenerator('30m', 'email', email, 'purpose', 'password-reset');
             const info = await sendMail(email, 'Password Reset', 'login/password-reset/', token, 'Click this to reset password!')
             console.log('Email sent: ', info.response);
-            res.status(200).json({
-                message: "Password Reset link has been sent successfully"
-            })
+            responder(res, 200, 'message', 'Password Resest link has been sent successfully')
             return;
         } catch (err) {
             console.log('Error sending email: ', err);
-            res.status(500).json({
-                error: "Error sending email"
-            })
+            responder(res, 500, 'error', 'Error sending mail')
             return;
         }
 
     } catch (err) {
         console.log(err);
-        res.status(500).json({
-            error: "Internal Server Error"
-        });
+        responder(res, 500, 'error', 'Internal server error')
         return;
     }
 };
 
 export const patchPasswordResetSubmit = async (req: Request, res: Response): Promise<void> => {
 
-    const token : string = req.params.token!
+    const token: string = req.params.token!
 
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
         const userData = decodedToken.data;
 
-        if(userData['purpose'] !== 'password-reset'){
-            res.status(401).json({
-                error: "Incorrect JWT token"
-            });
+        if (userData['purpose'] !== 'password-reset') {
+            responder(res, 401, 'error', 'Incorrect JWT token');
             return;
         }
 
         //TODO: Implement user password update here using info from token
 
-    } catch (err) {
-        res.status(400).json({
-            error: 'JWT malformed'
-          });
-          return;
+    } catch (err: any) {
+
+        if (err.name === 'TokenExpiredError') {
+            responder(res, 401, 'error', 'Expired Link');
+        } else {
+
+            responder(res, 400, 'err', 'JWT malformed')
+            return;
+        }
     }
-};
+}

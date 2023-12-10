@@ -2,9 +2,9 @@ import express, { Router, Request, Response } from "express";
 
 const router : Router = express.Router();
 
-import { postLoginUser, postPasswordResetLink, patchPasswordResetSubmit } from '../controller/login';
+import { patchLoginUser, postPasswordResetLink, patchPasswordResetSubmit } from '../controller/login';
 
-router.post('/', (req: Request, res : Response) => postLoginUser(req, res));
+router.patch('/', (req: Request, res : Response) => patchLoginUser(req, res));
 
 router.post('/password-reset', (req: Request, res: Response) => postPasswordResetLink(req, res));
 
