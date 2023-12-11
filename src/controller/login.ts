@@ -7,7 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import responder from '../utils/responder';
 
-export const patchLoginUser = async (req: Request, res: Response): Promise<void> => {
+export const postLoginUser = async (req: Request, res: Response): Promise<void> => {
 
     const email: string = req.body.email!;
     const password: string = req.body.password!;
@@ -17,6 +17,7 @@ export const patchLoginUser = async (req: Request, res: Response): Promise<void>
         email: string;
         password: string;
         blocked: boolean;
+        verified: boolean;
         profile_id: number;
         first_name: string;
         last_name: string;
@@ -47,18 +48,19 @@ export const patchLoginUser = async (req: Request, res: Response): Promise<void>
             return;
         }
 
+        //Check if user account is verified or not
+        if (!userObject.verified){
+            responder(res, 401, 'error', 'User account has not been verified yet')
+            return;
+        }
+
         //Check if user is not blocked
         if (userObject.blocked) {
-            responder(res, 403, 'error', 'User account is currently blocked, please reset password');
+            responder(res, 401, 'error', 'User account is currently blocked, please reset password');
             return;
         }
 
         //TODO Block User if they try to log in more then 3 times
-        if (userObject.numb_of_attempts >= 3) {
-            await db.none('SELECT * FROM account ')
-            responder(res, 401, 'error', 'User account is currently blocked, please reset password');
-            return;
-        }
 
         //Check if password is correct
         const passwordMatch: boolean = await bcrypt.compare(password, userObject.password)
@@ -77,15 +79,15 @@ export const patchLoginUser = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        // Generate JWT token for authentication and send it back to user
-        const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'firstName', userObject.first_name, 'lastName', userObject.last_name, 'purpose', 'authentication');
-
+        // Generate JWT token for authentication and send it back to user. 
+        // In the authenticate.ts this email will be used to make a db connection, check if user is allowed to progress,
+        // and then make a user object out of them which can be imported from types/users and used throughout the application.
+        const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'purpose', 'authentication');
         responder(res, 200, 'message', 'Successfull login!', 'token', token)
         return;
 
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error')
-        console.log(err);
         return;
     }
 };

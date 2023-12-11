@@ -32,7 +32,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     });
 
     if (user) {
-      responder(res, 409, 'error', 'Email address has already been registered')
+      responder(res, 401, 'error', 'Email address has already been registered')
       return;
     }
 
@@ -45,22 +45,15 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   //hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  //generate token
-  const token = jwtTokenGenerator('30m', 'email', email, 'hashedpassword', hashedPassword, 'purpose', 'account-verification');
+  //TODO: CREATE USER HERE IN SQL WHICH IS CURRENTLY NOT VERIFIED
 
-
-  //TODO: IMPLEMENT THE FOLLOWING LOGIC LATER HERE WHEN DB WAS UPDATED WITH A VERIFICATION TABLE
-
-  /*
-      A verification table is needed here which stores the user email when they register and the generated JWT token, 
-      Logic needs to be written here in order to make a db request to check if the email already has a JWT token which has not yet been exipred
-  */
+  const token = jwtTokenGenerator('30m', 'email', email, 'purpose', 'account-verification');
 
   //send email
   try {
     const info = await sendMail(email, 'Account Verification', 'register/verification/', token, 'Verify Your account! This link is valid for 30 min');
     console.log('Email sent: ', info.response);
-    responder(res, 200, 'message', 'Register successfull, verification email sent')
+    responder(res, 201, 'message', 'Register successfull, verification email sent')
     return;
   } catch (err) {
     console.log('Error sending email: ', err);
@@ -80,7 +73,6 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
     const userData: jwt.JwtPayload = decodedToken.data;
     const email: string = userData['email'];
-    const hashedPassword: string = userData['hashedpassword'];
 
     //verify that the user did not insert an authorization token into the url or something else
     if (userData['purpose'] !== 'account-verification') {
@@ -88,7 +80,9 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    //TODO implement user creation here using info stored in jwt token
+    //TODO IMPLEMENT UPDATE ON USER WITH THE EMAIL FROMT THE TOKEN AND VERIFY THEM
+
+    //If everything is okay, send good response
     responder(res, 200, 'message', 'Account verified successfully')
     return;
   }
@@ -96,8 +90,8 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
 
     if (err.name === 'TokenExpiredError') {
       responder(res, 401, 'error', 'Expired Link');
+      return;
     } else {
-
       responder(res, 401, 'error', 'JWT malformed')
       return;
     }

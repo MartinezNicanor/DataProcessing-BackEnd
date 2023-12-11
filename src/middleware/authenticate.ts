@@ -29,17 +29,30 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
     const decodedToken = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET!) as jwt.JwtPayload;
 
     if (decodedToken.data['purpose'] !== 'authentication') {
-      responder(res, 401, 'error', 'Not authenticated');
+      responder(res, 401, 'error', 'Not Authorized');
       return;
     }
 
     try {
       // Fetch user data from the database
-      const user = await db.oneOrNone('SELECT * FROM account WHERE email = ${email}', [decodedToken['email']]);
+      const user = await db.oneOrNone('SELECT * FROM account WHERE email = ${email}', {
+        email: decodedToken['email'] 
+      });
 
       //assign user info to req.user from db object
       if (user) {
         req.user = user;
+
+        //Check if user is blocked
+        if (user.blocked) {
+          responder(res, 401, 'error', 'User not authenticated');
+        }
+
+        //Check if user is verified
+        if (!user.verified) {
+          responder(res, 401, 'error', 'User not authenticated');
+        }
+
         next();
       } else {
         responder(res, 401, 'error', 'User not found in the database');

@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import morgan from 'morgan';
+import upload from './config/multerConfig';
 import {db, pgp} from './db';
 import authenticateToken from './middleware/authenticate';
 
@@ -22,7 +23,6 @@ app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing
 app.use(morgan('dev')); // Logger
 
-//TODO: ADD REFRESH TOKEN PATH
 
 // Routes
 const registerRoutes = require('./routes/register')
@@ -31,8 +31,8 @@ app.use("/register", registerRoutes);
 const loginRoutes = require('./routes/login')
 app.use("/login", loginRoutes);
 
-const accountRoutes = require('./routes/account')
-app.use("/account", accountRoutes)
+const userRoutes = require('./routes/user')
+app.use("/user" , userRoutes)
 
 //Test Route
 const indexRoutes = require('./routes/index');
