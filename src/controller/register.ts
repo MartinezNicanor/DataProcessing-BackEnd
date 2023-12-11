@@ -98,7 +98,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
       responder(res, 401, 'error', 'Expired Link');
     } else {
 
-      responder(res, 400, 'error', 'JWT malformed')
+      responder(res, 401, 'error', 'JWT malformed')
       return;
     }
   }

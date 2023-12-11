@@ -5,7 +5,8 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import morgan from 'morgan';
 import {db, pgp} from './db';
-import xmlParser from 'express-xml-bodyparser';
+import authenticateToken from './middleware/authenticate';
+
 
 dotenv.config();
 
@@ -13,17 +14,6 @@ dotenv.config();
 const app = express(); 
 
 // Example function to run a simple query
-async function getCountry(countryId: number) {
-    try {
-        const country: string = await db.one('SELECT * FROM country WHERE country_id = $1', countryId);
-        console.log(country);
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-getCountry(1);
-getCountry(2);
 
 parseInt(process.env.PORT!)
 
@@ -47,7 +37,6 @@ app.use("/account", accountRoutes)
 //Test Route
 const indexRoutes = require('./routes/index');
 app.use("/", indexRoutes);
-
 
 //favicon.ico automatic request handler
 app.get('/favicon.ico', (req : Request, res : Response) => {

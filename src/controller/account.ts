@@ -9,7 +9,7 @@ export const postCreateNewAccount = async (req: Request, res: Response): Promise
  try{
     const token: string | undefined = req.headers['authorization'];
     //If no token respond with error
-    if(!token) {
+    if(!token) { 
         responder(res, 401, 'error', 'User not authorized');
         return;
     }
@@ -18,11 +18,6 @@ export const postCreateNewAccount = async (req: Request, res: Response): Promise
         //Extract data from token
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
         const tokenInfo = decodedToken.data;
-
-        if (tokenInfo['purpose'] !== 'authentication') {
-            responder(res, 401, 'error', 'Incorrect JWT token');
-            return;
-        }
 
         //Count the number of profiles for an account_id
         const numberOfAccounts = await db.oneOrNone('SELECT COUNT(*) FROM profile WHERE account_id = ${account_id}', {
