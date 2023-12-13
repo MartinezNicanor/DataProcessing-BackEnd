@@ -9,8 +9,8 @@ import responder from '../utils/responder';
 
 export const postRegisterUser = async (req: Request, res: Response): Promise<void> => {
 
-    const email : string = req.body.email!;
-    const password :string  = req.body.password!;
+  const email: string = req.body.email!;
+  const password: string = req.body.password!;
 
   //Validate email
   if (!isValidEmail(email)) {
@@ -27,7 +27,8 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   //Check if email is already in DB
   try {
-    const user: null | string = await db.oneOrNone('SELECT * FROM account WHERE email = ${email}', {
+    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+    const user: null | string = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
       email: email
     });
 
@@ -37,7 +38,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     }
 
   } catch (err) {
-    console.log(err);
     responder(res, 500, 'error', 'Internal Server Error')
     return;
   }
@@ -45,7 +45,32 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   //hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  //TODO: CREATE USER HERE IN SQL WHICH IS CURRENTLY NOT VERIFIED
+  //TODO: GO THROUGH SQL QUERY WITH JOEY WHEN HE IS DONE WITH DB
+  try {
+    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+    await db.none(`INSERT INTO Account (email, password, first_name, last_name, payment_method,
+      subscription_id, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited) 
+      VALUES ($<email>, $<password>, $<first_name>, $<last_name>, $<payment_method>, $<subscription_id>,
+      $<blocked>, $<verified>, $<street>, $<zip_code>, $<country_id>, $<log_in_attempt_count>, $<invited>)`, {
+      email: email,
+      password: hashedPassword,
+      first_name: 'John',
+      last_name: 'Doe',
+      payment_method: 'Visa',
+      subscription_id: 1,
+      blocked: false,
+      verified: false,
+      street: '123 Main St',
+      zip_code: '12345',
+      country_id: 1,
+      log_in_attempt_count: 0,
+      invited: false
+    });
+
+  } catch (err) {
+    responder(res, 500, 'error', 'Something went wrong')
+    return;
+  }
 
   const token = jwtTokenGenerator('30m', 'email', email, 'purpose', 'account-verification');
 
@@ -80,11 +105,21 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    //TODO IMPLEMENT UPDATE ON USER WITH THE EMAIL FROMT THE TOKEN AND VERIFY THEM
+    try {
+     //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+      await db.none('UPDATE Account SET verified = $<verified> WHERE email = $<email>', {
+        verified: true,
+        email: email
+      })
+      responder(res, 200, 'message', 'Account verified successfully')
+      return;
+    } catch (err) {
+      responder(res, 500, 'error', 'Internal Server Error')
+      return;
+    }
 
     //If everything is okay, send good response
-    responder(res, 200, 'message', 'Account verified successfully')
-    return;
+
   }
   catch (err: any) {
 
@@ -97,3 +132,4 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
     }
   }
 }
+

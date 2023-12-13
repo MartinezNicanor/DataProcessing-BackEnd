@@ -46,22 +46,27 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
         //Check if user is blocked
         if (user.blocked) {
           responder(res, 401, 'error', 'User not authenticated');
+          return;
         }
 
         //Check if user is verified
         if (!user.verified) {
           responder(res, 401, 'error', 'User not authenticated');
+          return;
         }
 
         next();
       } else {
         responder(res, 401, 'error', 'User not found in the database');
+        return;
       }
     } catch (err) {
       responder(res, 500, 'error', 'Server Error');
+      return;
     }
   } catch (err) {
     responder(res, 401, 'error', 'Malformed or Invalid JWT token');
+    return; 
   }
 }
 

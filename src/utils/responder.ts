@@ -21,7 +21,8 @@ function responder(res: Response, status: number, ...args: any[]): void {
     // Check if the client accepts XML
     if (res.req?.accepts('application/xml')) {
         res.setHeader('Accept', 'application/xml');
-        res.status(status).send(xml(data));
+        const xmlData = { response: Object.entries(data).map(([key, value]) => ({ [key]: value })) };
+        res.status(status).send(xml(xmlData, { declaration: true }));
         return;
     }
 

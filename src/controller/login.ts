@@ -6,23 +6,12 @@ import { db } from '../db';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import responder from '../utils/responder';
+import { User } from '../types/user';
 
 export const postLoginUser = async (req: Request, res: Response): Promise<void> => {
 
     const email: string = req.body.email!;
     const password: string = req.body.password!;
-
-    // interface to access sql information, variable names should match coulumn names for clarity
-    interface UserData {
-        email: string;
-        password: string;
-        blocked: boolean;
-        verified: boolean;
-        profile_id: number;
-        first_name: string;
-        last_name: string;
-        numb_of_attempts: number;
-    }
 
     // Validate email
     if (!isValidEmail(email)) {
@@ -38,7 +27,8 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
 
     //Fetch user object from DB
     try {
-        const userObject: null | UserData = await db.oneOrNone('SELECT * FROM account WHERE email = ${email}', {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
 
@@ -49,7 +39,7 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
         }
 
         //Check if user account is verified or not
-        if (!userObject.verified){
+        if (!userObject.verified) {
             responder(res, 401, 'error', 'User account has not been verified yet')
             return;
         }
@@ -60,28 +50,44 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        //TODO Block User if they try to log in more then 3 times
-
         //Check if password is correct
         const passwordMatch: boolean = await bcrypt.compare(password, userObject.password)
 
-        //TODO: Implement a counter to see how many times the user tried to login with wrong password
-        //TODO: After 3 wrong attempts block them
-
         //check if the passwordMatch if false
         if (!passwordMatch) {
-            //Update user number of attempts
+            //if number of attempts is 2 then increase number of attempts and block user
+            if (userObject.log_in_attempt_count == 2) {
+                try {
+                    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+                    await db.none('UPDATE Account SET log_in_attempt_count = $<log_in_attempt_count>, blocked = $<blocked> WHERE email = $<email>', {
+                        log_in_attempt_count: (userObject.log_in_attempt_count + 1),
+                        blocked: true,
+                        email: userObject.email
+                    })
+                    responder(res, 401, 'error', 'Too many login attempts, please reset password');
+                    return;
+                } catch (err) {
+                    responder(res, 500, 'error', 'Internal Server Error');
+                    return;
+                }
+            }
 
-            //TODO: CHECK LAST Login Attempt IN DB IS MORE THAN 24H AGO, IF SO RESET THE NUMBER OF ATTEMPTS TO 0 AND SET LAST LOgin attempt TO TODAY
-            //TODO: MAKE A REQUEST TO DB TO INCREASE NUMBER OF ATTEMPTS
-
-            responder(res, 401, 'error', 'Invalid user credentials')
-            return;
+            //if number of attempts is less than 2, then increase number of attempts and throw error message
+            try {
+                //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+                await db.none('UPDATE Account SET log_in_attempt_count = $<log_in_attempt_count> WHERE email = $<email>', {
+                    log_in_attempt_count: (userObject.log_in_attempt_count + 1),
+                    email: userObject.email
+                })
+                responder(res, 401, 'error', 'Invalid user credentials')
+                return;
+            } catch (err) {
+                responder(res, 500, 'error', 'Internal Server Error');
+                return;
+            }
         }
 
-        // Generate JWT token for authentication and send it back to user. 
-        // In the authenticate.ts this email will be used to make a db connection, check if user is allowed to progress,
-        // and then make a user object out of them which can be imported from types/users and used throughout the application.
+        //Successfull login, generate a jwt token for further authentication
         const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'purpose', 'authentication');
         responder(res, 200, 'message', 'Successfull login!', 'token', token)
         return;
@@ -96,24 +102,16 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
     const email: string = req.body.email!;
 
-    interface UserData {
-        email: string;
-        password: string;
-        blocked: boolean;
-        profile_id: number;
-        first_name: string;
-        last_name: string;
-    }
-
     //Validate email
     if (!isValidEmail(email)) {
-        responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.');
+        responder(res, 400, 'error', 'Invalid email address. Please make sure that the inpues are valid.');
         return;
     }
 
     //check if user has been registered with email
     try {
-        const userObject: null | UserData = await db.oneOrNone('SELECT * FROM account WHERE email = ${email}', {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
 
@@ -130,13 +128,11 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
             responder(res, 200, 'message', 'Password Resest link has been sent successfully')
             return;
         } catch (err) {
-            console.log('Error sending email: ', err);
             responder(res, 500, 'error', 'Error sending mail')
             return;
         }
 
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error')
         return;
     }
@@ -144,27 +140,47 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
 export const patchPasswordResetSubmit = async (req: Request, res: Response): Promise<void> => {
 
+    //TODO DOUBLECHECK LOGIC HERE TO SEE IF I MISSED ANY EDGE CASES
+
     const token: string = req.params.token!
+    const password : string = req.body.password!
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
         const userData = decodedToken.data;
+        const email = userData['email'];
 
         if (userData['purpose'] !== 'password-reset') {
             responder(res, 401, 'error', 'Incorrect JWT token');
             return;
         }
 
-        //TODO: Implement user password update here using info from token
+        try {
+             //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            await db.none("UPDATE Account SET password = $<password>, blocked = $<blocked>, log_in_attempt_count = $<log_in_attempt_count>  WHERE email = $<email>", {
+                password: hashedPassword,
+                blocked: false,
+                log_in_attempt_count: 0,
+                email: email
+            })
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal server error')
+            return;
+        }
+
+
 
     } catch (err: any) {
-
         if (err.name === 'TokenExpiredError') {
             responder(res, 401, 'error', 'Expired Link');
         } else {
-
             responder(res, 400, 'err', 'JWT malformed')
             return;
         }
     }
 }
+
+export const getPasswordResetVerification = async (req: Request, res: Response): Promise<void> => {
+    //TODO  ADD VERIFICATION HERE TO SEE IF THE RIGHT PERSON HAS SUBMITTED THE PASSWORD RESET REQUEST
+};

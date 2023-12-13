@@ -1,9 +1,19 @@
-
 import multer from 'multer';
 import path from 'path';
-//TODO Checks for different mime types to make sure only images are uploaded
+import responder from '../utils/responder';
 
-//! FILE NAME DOES NOT GET THROUGH RN IDKWTD
+
+const acceptedMimeTypes: string[] = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'];
+
+const fileFilter = (req : any, file: any, cb: any) => {
+  if (acceptedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    const errorMessage = 'Wrong file type';
+    responder(req.res, 400, 'error', errorMessage);
+    return;
+  }
+};
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -11,12 +21,11 @@ const storage = multer.diskStorage({
     cb(null, destinationPath); 
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    console.log(`${Date.now()}${ext}`)
-    cb(null, `${Date.now()}${ext}`);
+    const filename = file.originalname.toLowerCase().replace(' ', '');
+    cb(null, `${Date.now()}${filename}`);
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage, fileFilter });
 
 export default upload;

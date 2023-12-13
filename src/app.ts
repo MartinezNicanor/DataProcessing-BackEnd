@@ -23,7 +23,6 @@ app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing
 app.use(morgan('dev')); // Logger
 
-
 // Routes
 const registerRoutes = require('./routes/register')
 app.use("/register", registerRoutes);

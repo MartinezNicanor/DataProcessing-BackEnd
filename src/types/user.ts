@@ -1,12 +1,37 @@
 export interface User {
-    account_id: string;
+    account_id: number;
     email: string;
+    password: string;
     first_name: string;
     last_name: string;
-    user_password: string;
-    usertype: string;
+    payment_method: string;
+    subscription_id: number;
     blocked: boolean;
     verified: boolean;
-
-    //THIS SHOULD MATCH DB 1 to 1 so that user object can be applied to this
+    street: string;
+    zip_code: string;
+    country_id: number;
+    log_in_attempt_count: number;
+    invited: boolean;
+    usertype: string; 
   }
+
+
+export interface Profile {
+    profile_id: number,
+    account_id: number,
+    profile_name: string,
+    age: number,
+    path_to_image: string,
+    language: string,
+    preferences : {
+      movies: string[],
+      series: string[],
+      genres: string[],
+      min_age: number[],
+      viewing_class: string[] 
+    } 
+}
+
+
+

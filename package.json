@@ -9,7 +9,7 @@
     "build": "npm run clean && tsc && npm run copy-static && npm run copy-images",
     "clean": "rimraf dist",
     "copy-static": "copyfiles -u 1 src/static/**/* dist",
-    "copy-images": "copyfiles -u 1 src/images/**/* dist/images",
+    "copy-images": "copyfiles -u 1 src/images/**/* dist/",
     "test": "jest"
   },
   "author": "",
