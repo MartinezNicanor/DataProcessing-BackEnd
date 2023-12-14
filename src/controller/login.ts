@@ -13,6 +13,11 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
     const email: string = req.body.email!;
     const password: string = req.body.password!;
 
+    if (email === undefined || password === undefined){
+        responder(res, 400, 'error', 'Invalid Request')
+        return
+      }
+
     // Validate email
     if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.');
@@ -102,6 +107,11 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
     const email: string = req.body.email!;
 
+    if (email === undefined){
+        responder(res, 400, 'error', 'Invalid Request')
+        return
+      }
+
     //Validate email
     if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email address. Please make sure that the inpues are valid.');
@@ -139,12 +149,16 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 };
 
 export const patchPasswordResetSubmit = async (req: Request, res: Response): Promise<void> => {
-
     //TODO DOUBLECHECK LOGIC HERE TO SEE IF I MISSED ANY EDGE CASES
 
     const token: string = req.params.token!
     const password : string = req.body.password!
-    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    if (token === undefined || password === undefined){
+        responder(res, 400, 'error', 'Invalid Request')
+        return
+      }
+    
 
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
@@ -157,6 +171,7 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
         }
 
         try {
+            const hashedPassword: string = await bcrypt.hash(password, 10);
              //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await db.none("UPDATE Account SET password = $<password>, blocked = $<blocked>, log_in_attempt_count = $<log_in_attempt_count>  WHERE email = $<email>", {
                 password: hashedPassword,
@@ -164,12 +179,13 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
                 log_in_attempt_count: 0,
                 email: email
             })
+
+            responder(res, 200, 'message', 'Password updated sucessfully')
+            return;
         } catch (err) {
             responder(res, 500, 'error', 'Internal server error')
             return;
         }
-
-
 
     } catch (err: any) {
         if (err.name === 'TokenExpiredError') {

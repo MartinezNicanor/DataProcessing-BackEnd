@@ -33,12 +33,12 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
       return;
     }
 
+
     try {
       // Fetch user data from the database
-      const user = await db.oneOrNone('SELECT * FROM account WHERE email = ${email}', {
-        email: decodedToken['email'] 
+      const user = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
+        email: decodedToken.data['email'] 
       });
-
       //assign user info to req.user from db object
       if (user) {
         req.user = user;

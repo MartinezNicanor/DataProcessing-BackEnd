@@ -12,6 +12,11 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   const email: string = req.body.email!;
   const password: string = req.body.password!;
 
+  if (email === undefined || password === undefined){
+    responder(res, 400, 'error', 'Invalid Request')
+    return
+  }
+
   //Validate email
   if (!isValidEmail(email)) {
     console.log(email, password, isValidEmail(email))
@@ -92,6 +97,11 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
 
   //get token from url
   const token: string = req.params.token!;
+
+  if (token === undefined){
+    responder(res, 400, 'error', 'Invalid Request')
+    return
+  }
 
   //verify token and activate account in db
   try {
