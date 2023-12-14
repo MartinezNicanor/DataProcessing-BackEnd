@@ -15,6 +15,7 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
     //? Does the language header need to be validated? To make sure that the user does not use a self made header there? If so, how since there is like a 100+ accept langauge values
     //? This also makes me question on what data should be validated and what is okay. 
     //? param? query? body? header? do i need to validate all of this?
+    //? Also what needs to be validated, is submitting an empty string not allowed? 
 
     if (!profileName || profileName.trim() === '') {
         responder(res, 400, 'error', 'Invalid profileName');
@@ -77,39 +78,6 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
 
 export const getUserProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
-
-
-    const accountIdParam: string = req.params.accountId
-    const profileIdParam: string = req.params.profileId
-
-    //Check if user is the correct one
-    if (accountIdParam !== String(req.user?.account_id)) {
-        responder(res, 401, 'error', 'User unauthorized')
-        return;
-    }
-
-    try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
-        //Get the profile info where accountId and profileId matches
-        const userProfile = await db.oneOrNone('SELECT * FROM profile WHERE account_id = ${account_id} AND profile_id = ${profile_id}', {
-            account_id: accountIdParam,
-            profile_id: profileIdParam
-        })
-
-        //If no match return error message
-        if (!userProfile) {
-            responder(res, 400, 'error', 'Profile id not found')
-            return;
-        }
-
-        //TODO: Makes sure the user profile information is sent properly becuae right now im not sure how this would be formatted
-        responder(res, 200, 'Message', 'UserProfile retireved successfully', 'userProfile', userProfile)
-        return;
-
-    } catch (err) {
-        responder(res, 500, 'error', 'Internal Server Error')
-        return;
-    }
 };
 
 
@@ -117,8 +85,95 @@ export const patchUpdateProfile = async (req: Request, res: Response): Promise<v
 };
 
 
-export const deleteDeleteProfile = async (req: Request, res: Response): Promise<void> => { };
+export const deleteDeleteProfile = async (req: Request, res: Response): Promise<void> => {
 
-export const postSetProfilePreferences = async (req: Request, res: Response): Promise<void> => { };
+};
 
-export const patchUpdateProfilePreferences = async (req: Request, res: Response): Promise<void> => { };
+export const postSetProfilePreferences = async (req: Request, res: Response): Promise<void> => {
+};
+
+export const patchUpdateProfilePreferences = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
+    const profile_id: string = req.params.profileId!;
+    const movie: string[] = req.body.movies ? req.body.movies : [];
+    const series: string[] = req.body.series ? req.body.series : [];
+    const genres: string[] = req.body.genres ? req.body.genres : [];
+    const min_age: number = (req.body.min_age !== null && req.body.min_age >= 0) ? req.body.min_age : 0
+    const viewing_class: string[] = req.body.viewing_class ? req.body.viewing_class : [];
+
+    const allowedViewingClasses = ['All ages', '6', '9', '12', '16+', 'violence', 'sex', 'terror', 'discrimination', 'drug and alcohol abuse', 'coarse language']
+
+    if (!req.params.profileId) {
+        responder(res, 400, 'error', 'Profile ID is required');
+        return;
+    }
+
+    if (isNaN(Number(profile_id))) {
+        responder(res, 400, 'error', 'Profile ID must be a number');
+        return;
+    }
+
+    if (!series.every(item => typeof item === 'string' && item.trim() !== '')) {
+        responder(res, 400, 'error', 'All items in series must be none empty strings');
+        return;
+    }
+
+    if (!movie.every(item => typeof item === 'string' && item.trim() !== '')) {
+        responder(res, 400, 'error', 'All items in movies must be none empty strings');
+        return;
+    }
+
+    if (!genres.every(item => typeof item === 'string' && item.trim() !== '')) {
+        responder(res, 400, 'error', 'All items in genres must be none empty strings');
+        return;
+    }
+
+    if (!viewing_class.every(item => typeof item === 'string' && item.trim() !== '' && allowedViewingClasses.includes(item.trim()))) {
+        responder(res, 400, 'error', 'All items in viewing_class must be none empty strings');
+        return;
+    }
+
+    try {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id}', {
+            profile_id: profile_id
+        });
+
+        if (!profile) {
+            responder(res, 404, 'error', 'Profile not found');
+            return;
+        }
+
+        if (profile.account_id !== req.user?.account_id) {
+            responder(res, 401, 'error', 'Unauthorized');
+            return;
+        }
+
+        const updatedPreferences: { [key: string]: string[] } =
+        {
+            "movie": movie,
+            "series": series,
+            "genres": genres,
+            "viewing_class": viewing_class,
+            "min_age": [String(min_age)]
+        }
+
+        try {
+            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            await db.none('UPDATE Profile SET preferences = $<updatedPreferences> WHERE profile_id = $<profile_id>', {
+                updatedPreferences: updatedPreferences,
+                profile_id: profile_id
+            });
+
+            responder(res, 200, 'message', 'Profile preferences updated successfully');
+            return;
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal Server Error');
+            return;
+        }
+
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+};

@@ -83,10 +83,10 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   try {
     const info = await sendMail(email, 'Account Verification', 'register/verification/', token, 'Verify Your account! This link is valid for 30 min');
     console.log('Email sent: ', info.response);
+
     responder(res, 201, 'message', 'Register successfull, verification email sent')
     return;
   } catch (err) {
-    console.log('Error sending email: ', err);
     responder(res, 500, 'error', 'Error sending email')
     return;
   }

@@ -3,13 +3,14 @@ import * as jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 import responder from '../utils/responder';
 import { db } from '../db';
-import {User} from '../types/user'
+import { User, Profile } from '../types/user'
 
 dotenv.config();
 
 // Define a custom interface extending the Express Request type and insert all the info that want to be accessed later
 interface AuthenticatedRequest extends Request {
-    user?: User;
+    user?: User,
+    profiel?: Profile
 }
 
 //async function to aoutorize the user
@@ -32,7 +33,6 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
       responder(res, 401, 'error', 'Not Authorized');
       return;
     }
-
 
     try {
       // Fetch user data from the database
