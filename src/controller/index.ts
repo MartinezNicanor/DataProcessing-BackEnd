@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
+import responder from '../utils/responder';
 
 export const getIndexPage = async (req: Request, res: Response): Promise<void> => {
-  res.status(200).json({
-    message: 'Index Page is Working',
-  });
+
+  responder(res, 200, req.headers['content-type']!, "2", "2")
 };
