@@ -4,17 +4,31 @@ import * as bcrypt from 'bcryptjs';
 import jwtTokenGenerator from '../utils/jwt.generator'
 import sendMail from '../utils/email.sender';
 import jwt from 'jsonwebtoken';
-import { isValidEmail, isValidPassword } from '../utils/email.pass.validators'
+import { isValidEmail, isValidPassword, validateStrings, validateNumbers} from '../utils/validators'
 import responder from '../utils/responder';
 
 export const postRegisterUser = async (req: Request, res: Response): Promise<void> => {
 
   const email: string = req.body.email!;
   const password: string = req.body.password!;
+  const firstName: string = req.body.firstName!;
+  const lastName: string = req.body.lastName!;
+  const paymentMethod: string = req.body.paymentMethod!;
+  const subscriptionId: number = req.body.subscriptionId!;
+  const street: string = req.body.street!;
+  const zipCode: string = req.body.zipCode!;
+  const countryId: number = req.body.countryId!;
 
-  if (email === undefined || password === undefined) {
-    responder(res, 400, 'error', 'Invalid Request')
-    return
+  //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
+
+  if(validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
+
+  if(validateNumbers([subscriptionId, countryId]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
   }
 
   //Validate email
@@ -58,14 +72,14 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
       $<blocked>, $<verified>, $<street>, $<zip_code>, $<country_id>, $<log_in_attempt_count>, $<invited>)`, {
       email: email,
       password: hashedPassword,
-      first_name: 'John',
-      last_name: 'Doe',
-      payment_method: 'Visa',
+      first_name: firstName,
+      last_name: lastName,
+      payment_method: paymentMethod,
       subscription_id: 1,
       blocked: false,
       verified: false,
-      street: '123 Main St',
-      zip_code: '12345',
+      street: street,
+      zip_code: zipCode,
       country_id: 1,
       log_in_attempt_count: 0,
       invited: false

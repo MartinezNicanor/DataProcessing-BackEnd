@@ -2,7 +2,7 @@ import responder from "../utils/responder";
 import express, { Router, Request, Response } from "express";
 import { db } from '../db'
 import { User } from "../types/user";
-import { isValidEmail } from "../utils/email.pass.validators";
+import { isValidEmail, validateStrings, validateNumbers, validateArrayStrings } from "../utils/validators";
 import jwtTokenGenerator from "../utils/jwt.generator";
 import sendEmail from "../utils/email.sender";
 
@@ -20,15 +20,20 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
     //? param? query? body? header? do i need to validate all of this?
     //? Also what needs to be validated, is submitting an empty string not allowed? 
 
-    if (!profileName || profileName.trim() === '') {
-        responder(res, 400, 'error', 'Invalid profileName');
-        return;
-    }
-
     //Make sure that if the languages have multiple inputs take the first one before the comma
     if (language.includes(",")) {
         const preferredLanguage: string[] = language.split(',')
         language = preferredLanguage[0].trim();
+    }
+
+    if (validateStrings([profileName, language]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    if (validateNumbers([age]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
     }
 
     try {
@@ -111,28 +116,21 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
         return;
     }
 
+    //Check if profile id is a number req.params is always string
     if (isNaN(Number(profile_id))) {
         responder(res, 400, 'error', 'Profile ID must be a number');
         return;
     }
 
-    if (!series.every(item => typeof item === 'string' && item.trim() !== '')) {
-        responder(res, 400, 'error', 'All items in series must be none empty strings');
+    //validate input values
+    if (validateNumbers([min_age, Number(profile_id)]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
         return;
     }
 
-    if (!movie.every(item => typeof item === 'string' && item.trim() !== '')) {
-        responder(res, 400, 'error', 'All items in movies must be none empty strings');
-        return;
-    }
-
-    if (!genres.every(item => typeof item === 'string' && item.trim() !== '')) {
-        responder(res, 400, 'error', 'All items in genres must be none empty strings');
-        return;
-    }
-
-    if (!viewing_class.every(item => typeof item === 'string' && item.trim() !== '' && allowedViewingClasses.includes(item.trim()))) {
-        responder(res, 400, 'error', 'All items in viewing_class must be none empty strings');
+    //validate input values crazy array validation
+    if (validateArrayStrings([movie, series, genres]) === false  || (validateArrayStrings([viewing_class]) === false) && viewing_class.every(item => allowedViewingClasses.includes(item.trim())) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
         return;
     }
 
@@ -183,12 +181,7 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
 
 export const postSendInvitation = async (req: Request & {user? : User}, res: Response): Promise<void> => {
     
-    const email: string = req.body.email;
-
-    if (!req.body.email) {
-        responder(res, 400, 'error', 'Email is required');
-        return;
-    }
+    const email: string = req.body.email!;
 
    if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email', `err`, `${email} is not a valid email`);

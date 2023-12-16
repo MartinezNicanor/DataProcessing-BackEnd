@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { isValidEmail, isValidPassword } from '../utils/email.pass.validators';
+import { isValidEmail, isValidPassword, validateStrings } from '../utils/validators';
 import jwtTokenGenerator from '../utils/jwt.generator'
 import sendMail from '../utils/email.sender';
 import { db } from '../db';
@@ -12,11 +12,6 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
 
     const email: string = req.body.email!;
     const password: string = req.body.password!;
-
-    if (email === undefined || password === undefined){
-        responder(res, 400, 'error', 'Invalid Request')
-        return
-      }
 
     // Validate email
     if (!isValidEmail(email)) {
@@ -107,11 +102,6 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
     const email: string = req.body.email!;
 
-    if (email === undefined){
-        responder(res, 400, 'error', 'Invalid Request')
-        return
-      }
-
     //Validate email
     if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email address. Please make sure that the inpues are valid.');
@@ -154,11 +144,15 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
     const token: string = req.params.token!
     const password : string = req.body.password!
     
-    if (token === undefined || password === undefined){
-        responder(res, 400, 'error', 'Invalid Request')
-        return
-      }
-    
+    if (!isValidPassword(password)) {
+        responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid.');
+        return;
+    }
+
+    if(validateStrings([token]) === false){
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
 
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
