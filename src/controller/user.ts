@@ -2,6 +2,9 @@ import responder from "../utils/responder";
 import express, { Router, Request, Response } from "express";
 import { db } from '../db'
 import { User } from "../types/user";
+import { isValidEmail } from "../utils/email.pass.validators";
+import jwtTokenGenerator from "../utils/jwt.generator";
+import sendEmail from "../utils/email.sender";
 
 
 export const postCreateNewProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
@@ -172,6 +175,47 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
             return;
         }
 
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+};
+
+export const postSendInvitation = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+    
+    const email: string = req.body.email;
+
+    if (!req.body.email) {
+        responder(res, 400, 'error', 'Email is required');
+        return;
+    }
+
+   if (!isValidEmail(email)) {
+        responder(res, 400, 'error', 'Invalid email', `err`, `${email} is not a valid email`);
+        return;
+    }
+
+    try {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        const account = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
+            email: email
+        });
+
+        if (account) {
+            responder(res, 400, 'error', 'Account is already registered');
+            return;
+        }
+
+        const token: string = jwtTokenGenerator('24h','invitingEmail',req.user?.email!, 'invitedEmail', email, 'purpose', 'invite')
+        try {
+            const info =  await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
+            console.log('Email sent: ', info.response);
+            responder(res, 200, 'message', 'Invitation sent successfully');
+            return;
+        } catch (error) {
+            responder(res, 500, 'error', 'Internal Server Error');
+            return;
+        }
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
