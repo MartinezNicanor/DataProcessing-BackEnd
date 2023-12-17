@@ -21,15 +21,15 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
 
-  if(validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
-    responder(res, 400, 'error', 'Invalid input values');
-    return;
-  }
+  // if(validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
+  //   responder(res, 400, 'error', 'Invalid input values');
+  //   return;
+  // }
 
-  if(validateNumbers([subscriptionId, countryId]) === false) {
-    responder(res, 400, 'error', 'Invalid input values');
-    return;
-  }
+  // if(validateNumbers([subscriptionId, countryId]) === false) {
+  //   responder(res, 400, 'error', 'Invalid input values');
+  //   return;
+  // }
 
   //Validate email
   if (!isValidEmail(email)) {

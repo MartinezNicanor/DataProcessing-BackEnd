@@ -1,10 +1,28 @@
 //external funct for email validate
 
+import validateEmail from "./email.validator.api";
+
 
 function isValidEmail(email: string): Boolean {
   if (!email) {
     return false;
   }
+
+  //Required API to check if email is deliverable
+  (async () => {
+    try {
+    const info = await validateEmail(email);
+
+    if(info && info.data.deliverability !== 'DELIVERABLE'){
+      console.log('email is not deliverable');
+      return false;
+    }
+ 
+    } catch (error) {
+      console.error(error);
+    }
+  })();
+
   //regex for email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
