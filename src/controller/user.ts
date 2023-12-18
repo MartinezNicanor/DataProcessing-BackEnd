@@ -14,12 +14,6 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
     let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en'  // check for language, 
     let profile_image: string | null = req.file ? req.file.filename : null;
 
-
-    //? Does the language header need to be validated? To make sure that the user does not use a self made header there? If so, how since there is like a 100+ accept langauge values
-    //? This also makes me question on what data should be validated and what is okay. 
-    //? param? query? body? header? do i need to validate all of this?
-    //? Also what needs to be validated, is submitting an empty string not allowed? 
-
     //Make sure that if the languages have multiple inputs take the first one before the comma
     if (language.includes(",")) {
         const preferredLanguage: string[] = language.split(',')
@@ -118,7 +112,7 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
             return;
         }
 
-        responder(res, 200,'shit','fuck', 'data', profile);
+        responder(res, 200,'data', profile);
         return;
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
@@ -127,15 +121,153 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
 };
 
 
-export const patchUpdateProfile = async (req: Request, res: Response): Promise<void> => {
+export const patchUpdateProfile = async (req: Request & {user?: User}, res: Response): Promise<void> => {
+
+    //profile interface to organize the data
+    interface Profile {
+        profile_id: number,
+        account_id: number,
+        profile_name: string,
+        profile_image: string,
+        age: number,
+        language: string,
+    }
+
+    //Get the data from the request
+    const profile_id: string = req.params.profileId!;
+    let profileName: string = req.body.profileName!;
+    let age: number = (req.body.age !== null && req.body.age >= 0) ? req.body.age : 0  //make sure the age is not negative && it exists, otherwise null
+    let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en'  // check for language, 
+    let profile_image: string | null = req.file ? req.file.filename : null;
+
+    //Make sure that if the languages have multiple inputs take the first one before the comma
+    if (language.includes(",")) {
+        const preferredLanguage: string[] = language.split(',')
+        language = preferredLanguage[0].trim();
+    }
+
+    //validate strings
+    if (validateStrings([profileName, language]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    //Check if profile id is a valid string number
+    if (isNaN(Number(profile_id))) {
+        responder(res, 400, 'error', 'Profile ID must be a number');
+        return;
+    }
+
+    //validate numbers values
+    if (validateNumbers([Number(profile_id), age]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+        //get profile from db
+    try {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        const profile: Profile | null = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
+            profile_id: profile_id,
+            account_id: req.user?.account_id
+        });
+
+        //Check if profile exists
+        if (!profile) {
+            responder(res, 404, 'error', 'Profile not found');
+            return;
+        }
+
+        //Check which parts of the profile was set to be updated
+        if (req.file) {
+            profile_image = req.file.filename;
+            console.log("File uploaded successfully")
+        } else {
+            profile_image = profile.profile_image;
+        }
+        
+        if (profileName === '') {
+            profileName = profile.profile_name;
+        }
+
+        if (age === 0) {
+            age = profile.age;
+        }
+
+        if (language === 'en') {
+            language = profile.language;
+        }
+
+        //Update the profile
+        try {
+            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            await db.none('UPDATE Profile SET profile_name = $<profileName>, profile_image = $<profile_image>, age = $<age>, language = $<language> WHERE profile_id = $<profile_id>', {
+                profileName: profileName,
+                profile_image: profile_image,
+                age: age,
+                language: language,
+                profile_id: profile_id
+            });
+
+            responder(res, 200, 'message', 'Profile updated successfull');
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
 };
 
 
-export const deleteDeleteProfile = async (req: Request, res: Response): Promise<void> => {
+export const deleteDeleteProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
-};
+    const profile_id: string = req.params.profileId!;
 
-export const postSetProfilePreferences = async (req: Request, res: Response): Promise<void> => {
+    //Check if profile id is a valid string number
+    if (isNaN(Number(profile_id))) {
+        responder(res, 400, 'error', 'Profile ID must be a number');
+        return;
+    }
+
+    //validate input values
+    if (validateNumbers([Number(profile_id)]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    //get profile from db
+    try {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
+            profile_id: profile_id,
+            account_id: req.user?.account_id
+        });
+
+        //Check if profile exists
+        if (!profile) {
+            responder(res, 404, 'error', 'Profile not found');
+            return;
+        }
+
+        //Delete the profile
+        try {
+            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            await db.none('DELETE FROM Profile WHERE profile_id = ${profile_id}', {
+                profile_id: profile_id
+            });
+
+            responder(res, 200, 'message', 'Profile deleted successfully');
+            return;
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal Server Error');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
 };
 
 export const patchUpdateProfilePreferences = async (req: Request & { user?: User }, res: Response): Promise<void> => {
@@ -172,22 +304,21 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
         return;
     }
 
+    //get profile from db
     try {
         //! DB CONNECTION HERE -----------------------------------------------------------------------------------
-        const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id}', {
-            profile_id: profile_id
+        const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
+            profile_id: profile_id,
+            account_id: req.user?.account_id
         });
 
+        //Check if profile exists
         if (!profile) {
             responder(res, 404, 'error', 'Profile not found');
             return;
         }
 
-        if (profile.account_id !== req.user?.account_id) {
-            responder(res, 401, 'error', 'Unauthorized');
-            return;
-        }
-
+        //Update the profile preferences
         const updatedPreferences: { [key: string]: string[] } =
         {
             "movie": movie,
@@ -197,6 +328,7 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
             "min_age": [String(min_age)]
         }
 
+        //Update the profile
         try {
             //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await db.none('UPDATE Profile SET preferences = $<updatedPreferences> WHERE profile_id = $<profile_id>', {
@@ -221,23 +353,29 @@ export const postSendInvitation = async (req: Request & {user? : User}, res: Res
     
     const email: string = req.body.email!;
 
+    //validate input values
    if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email', `err`, `${email} is not a valid email`);
         return;
     }
 
+    //Check if the email is already registered
     try {
         //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const account = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
 
+        //If the email is already registered
         if (account) {
             responder(res, 400, 'error', 'Account is already registered');
             return;
         }
 
+        //Generate the token
         const token: string = jwtTokenGenerator('24h','invitingEmail',req.user?.email!, 'invitedEmail', email, 'purpose', 'invite')
+
+        //Send the email
         try {
             const info =  await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
             console.log('Email sent: ', info.response);

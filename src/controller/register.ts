@@ -11,37 +11,39 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   const email: string = req.body.email!;
   const password: string = req.body.password!;
-  const firstName: string = req.body.firstName!;
-  const lastName: string = req.body.lastName!;
-  const paymentMethod: string = req.body.paymentMethod!;
-  const subscriptionId: number = req.body.subscriptionId!;
-  const street: string = req.body.street!;
-  const zipCode: string = req.body.zipCode!;
-  const countryId: number = req.body.countryId!;
+
+  console.log(email, password);
+  // const firstName: string = req.body.firstName!;
+  // const lastName: string = req.body.lastName!;
+  // const paymentMethod: string = req.body.paymentMethod!;
+  // const subscriptionId: number = req.body.subscriptionId!;
+  // const street: string = req.body.street!;
+  // const zipCode: string = req.body.zipCode!;
+  // const countryId: number = req.body.countryId!;
 
   //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
 
-  if (validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
-    responder(res, 400, 'error', 'Invalid input values');
-    return;
-  }
+  // if (validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
+  //   responder(res, 400, 'error', 'Invalid input values');
+  //   return;
+  // }
 
-  if (validateNumbers([subscriptionId, countryId]) === false) {
-    responder(res, 400, 'error', 'Invalid input values');
-    return;
-  }
+  // if (validateNumbers([subscriptionId, countryId]) === false) {
+  //   responder(res, 400, 'error', 'Invalid input values');
+  //   return;
+  // }
 
-  //Validate email
-  if (!isValidEmail(email)) {
-    responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.')
-    return;
-  }
+  // //Validate email
+  // if (!isValidEmail(email)) {
+  //   responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.')
+  //   return;
+  // }
 
-  //Validate password
-  if (!isValidPassword(password)) {
-    responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid')
-    return;
-  }
+  // //Validate password
+  // if (!isValidPassword(password)) {
+  //   responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid')
+  //   return;
+  // }
 
   //Check if email is already in DB
   try {
@@ -56,6 +58,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     }
 
   } catch (err) {
+    console.log(1);
     responder(res, 500, 'error', 'Internal Server Error')
     return;
   }
@@ -72,20 +75,21 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
       $<blocked>, $<verified>, $<street>, $<zip_code>, $<country_id>, $<log_in_attempt_count>, $<invited>)`, {
       email: email,
       password: hashedPassword,
-      first_name: firstName,
-      last_name: lastName,
-      payment_method: paymentMethod,
+      first_name: 'firstName',
+      last_name: 'lastName',
+      payment_method: 'Visa',
       subscription_id: 1,
       blocked: false,
       verified: false,
-      street: street,
-      zip_code: zipCode,
+      street: 'street',
+      zip_code: 'zipCode',
       country_id: 1,
       log_in_attempt_count: 0,
       invited: false
     });
 
   } catch (err) {
+    console.log(2);
     responder(res, 500, 'error', 'Something went wrong')
     return;
   }
@@ -100,6 +104,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     responder(res, 201, 'message', 'Register successfull, verification email sent')
     return;
   } catch (err) {
+    console.log(3);
     responder(res, 500, 'error', 'Error sending email')
     return;
   }

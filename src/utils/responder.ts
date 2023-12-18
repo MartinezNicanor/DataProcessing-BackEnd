@@ -1,6 +1,5 @@
-import { json } from 'body-parser';
 import { Response } from 'express';
-import xml from 'xml';
+import xml2js from 'xml2js';
 
 function responder(res: Response, status: number, ...args: any[]): void {
 
@@ -23,27 +22,7 @@ function responder(res: Response, status: number, ...args: any[]): void {
     // Check if the client accepts XML
     if (res.req?.accepts('application/xml')) {
         res.setHeader('Accept', 'application/xml');
-        console.log(data)
-
-        // Convert the data object to XML (somehow this works)
-        const xmlData = {
-            response: Object.entries((Object.values(data))[1]).map(([key, value]) => {
-                if (typeof value === 'object' && value !== null) {
-                    return { [key]: Object.entries(value).map(([k, v]) => {
-                        if (Array.isArray(v)) {
-                            return { [k]: v.map(item => ({ 'item': item })) };
-                        } else {
-                            return { [k]: v };
-                        }
-                    })};
-                } else if (Array.isArray(value) && value.length > 0) {
-                    return { [key]: value.map((val) => ({ _: val })) };
-                } else {
-                    return { [key]: value };
-                }
-            })
-        }
-        res.status(status).send(xml(xmlData, { declaration: true }));
+        res.status(status).send(jsonToXml(data));
         return;
     }
 
@@ -51,6 +30,12 @@ function responder(res: Response, status: number, ...args: any[]): void {
     res.setHeader('Accept', 'application/json');
     res.status(status).json(data);
     return;
+}
+
+function jsonToXml(json : any) {
+    const builder = new xml2js.Builder();
+    const xml = builder.buildObject(json);
+    return xml;
 }
 
 export default responder;

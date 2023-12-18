@@ -9,19 +9,20 @@ function isValidEmail(email: string): Boolean {
   }
 
   //Required API to check if email is deliverable
-  (async () => {
-    try {
-    const info = await validateEmail(email);
+  //! DONT FORGET TO UNCOMMENT AND CREATE NEW API KEY SINCE FREE TEIR IS ONLY 100 REQUESTS
+  // (async () => {
+  //   try {
+  //   const info = await validateEmail(email);
 
-    if(info && info.data.deliverability !== 'DELIVERABLE'){
-      console.log('email is not deliverable');
-      return false;
-    }
+  //   if(info && info.data.deliverability !== 'DELIVERABLE'){
+  //     console.log('email is not deliverable');
+  //     return false;
+  //   }
  
-    } catch (error) {
-      console.error(error);
-    }
-  })();
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // })();
 
   //regex for email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
