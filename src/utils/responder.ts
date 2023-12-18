@@ -1,3 +1,4 @@
+import { json } from 'body-parser';
 import { Response } from 'express';
 import xml from 'xml';
 
@@ -18,10 +19,30 @@ function responder(res: Response, status: number, ...args: any[]): void {
         return;
     }
 
+
     // Check if the client accepts XML
     if (res.req?.accepts('application/xml')) {
         res.setHeader('Accept', 'application/xml');
-        const xmlData = { response: Object.entries(data).map(([key, value]) => ({ [key]: value })) };
+        console.log(data)
+
+        // Convert the data object to XML (somehow this works)
+        const xmlData = {
+            response: Object.entries((Object.values(data))[1]).map(([key, value]) => {
+                if (typeof value === 'object' && value !== null) {
+                    return { [key]: Object.entries(value).map(([k, v]) => {
+                        if (Array.isArray(v)) {
+                            return { [k]: v.map(item => ({ 'item': item })) };
+                        } else {
+                            return { [k]: v };
+                        }
+                    })};
+                } else if (Array.isArray(value) && value.length > 0) {
+                    return { [key]: value.map((val) => ({ _: val })) };
+                } else {
+                    return { [key]: value };
+                }
+            })
+        }
         res.status(status).send(xml(xmlData, { declaration: true }));
         return;
     }

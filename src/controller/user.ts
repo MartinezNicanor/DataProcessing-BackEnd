@@ -26,11 +26,13 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
         language = preferredLanguage[0].trim();
     }
 
+    //validate input values
     if (validateStrings([profileName, language]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     }
 
+    //validate input values
     if (validateNumbers([age]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
@@ -86,6 +88,42 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
 
 export const getUserProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+    const profile_id: string = req.params.profileId!;
+    
+    //Check if profile id is a valid string number
+    if (isNaN(Number(profile_id))) {
+        responder(res, 400, 'error', 'Profile ID must be a number');
+        return;
+    }
+
+    //validate input values
+    if (validateNumbers([Number(profile_id)]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    try {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id}', {
+            profile_id: profile_id
+        });
+
+        if (!profile) {
+            responder(res, 404, 'error', 'Profile not found');
+            return;
+        }
+
+        if (profile.account_id !== req.user?.account_id) {
+            responder(res, 401, 'error', 'Unauthorized');
+            return;
+        }
+
+        responder(res, 200,'shit','fuck', 'data', profile);
+        return;
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
 };
 
 

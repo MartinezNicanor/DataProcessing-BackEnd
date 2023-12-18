@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import jwtTokenGenerator from '../utils/jwt.generator'
 import sendMail from '../utils/email.sender';
 import jwt from 'jsonwebtoken';
-import { isValidEmail, isValidPassword, validateStrings, validateNumbers} from '../utils/validators'
+import { isValidEmail, isValidPassword, validateStrings, validateNumbers } from '../utils/validators'
 import responder from '../utils/responder';
 
 export const postRegisterUser = async (req: Request, res: Response): Promise<void> => {
@@ -21,15 +21,15 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
 
-  // if(validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
-  //   responder(res, 400, 'error', 'Invalid input values');
-  //   return;
-  // }
+  if (validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
 
-  // if(validateNumbers([subscriptionId, countryId]) === false) {
-  //   responder(res, 400, 'error', 'Invalid input values');
-  //   return;
-  // }
+  if (validateNumbers([subscriptionId, countryId]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
 
   //Validate email
   if (!isValidEmail(email)) {
@@ -151,19 +151,19 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
             await t.none('UPDATE Account SET invited = $<invited> WHERE email = $<email>', {
               invited: true,
               email: invitedObject.inviting_email
-              });
+            });
 
-              //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await t.none('UPDATE Account SET invited = $<invited>, verified = $<verified> WHERE email = $<email>', {
               invited: true,
               verified: true,
               email: email
-              });
+            });
 
-           //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await t.none('DELETE FROM Invite WHERE invited_email = $<email>', {
               email: invitedObject.invited_email
-              });
+            });
           });
           responder(res, 200, 'message', 'Account verified successfully');
           return
@@ -173,7 +173,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         }
 
         /* If there is an invited object, update the invited column in the Account table to true for the inviting 
-        user and delete the invite object from the Invite table and  */ 
+        user and delete the invite object from the Invite table and  */
       }
 
       //If there is no invited object, execute the following just update the verified column in the Account table to true
@@ -308,3 +308,4 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
   }
 };
 
+// 
