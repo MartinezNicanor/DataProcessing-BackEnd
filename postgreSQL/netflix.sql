@@ -27,17 +27,33 @@ CREATE TABLE Account (
     account_id SERIAL PRIMARY KEY,
     email VARCHAR (255) NOT NULL UNIQUE,
     password VARCHAR (255) NOT NULL,
-    profile_id INT NOT NULL,
     first_name VARCHAR (255) NOT NULL,
     last_name VARCHAR (255) NOT NULL,
     payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
     subscription_id INT NOT NULL,
     blocked BOOLEAN NOT NULL,
+    verified BOOLEAN NOT NULL,
     street VARCHAR (255) NOT NULL,
     zip_code VARCHAR (10) NOT NULL,
     country_id INT NOT NULL,
-    FOREIGN KEY (country_id) REFERENCES Country (country_id) ON DELETE NO ACTION
+    log_in_attempt_count INT,
+    invited BOOLEAN
 );
+
+-- Create the check_unique_account_limit function
+CREATE OR REPLACE FUNCTION check_unique_account_limit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (
+        SELECT COUNT(*)
+        FROM Profile
+        WHERE account_id = NEW.account_id
+    ) > 4 THEN
+        RAISE EXCEPTION 'More than 4 profiles for the same account are not allowed';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE TABLE Movie (
     movie_id SERIAL PRIMARY KEY,
@@ -50,10 +66,27 @@ CREATE TABLE Movie (
 CREATE TABLE Profile (
     profile_id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
-    profile_image VARCHAR (255) DEFAULT 'location/placeholder.jpg',
+    profile_image VARCHAR(255) DEFAULT 'location/placeholder.jpg',
+    profile_name VARCHAR(255),
     profile_child BOOLEAN DEFAULT false,
+    age INT NOT NULL,
+    preferences JSON NOT NULL DEFAULT '{
+        "movie": [],
+        "series": [],
+        "genre": [],
+        "min_age": [],
+        "viewing_class": [],
+        "language_settings": []
+    }',
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
 );
+
+-- Add the trigger to enforce the unique_account_limit constraint separately
+CREATE TRIGGER unique_account_limit_trigger
+BEFORE INSERT OR UPDATE
+ON Profile
+FOR EACH ROW
+EXECUTE FUNCTION check_unique_account_limit();
 
 CREATE TABLE Rating(
     rating_id SERIAL PRIMARY KEY,
