@@ -1,4 +1,4 @@
--- v1.0 creating script for tables in User
+-- v3.0 creating script for tables in User
 
 CREATE TABLE Roles (
     role_id  SERIAL PRIMARY KEY,

@@ -1,5 +1,4 @@
--- v1.0 creating script for tables in Netflx
-
+-- 3.0 creating script for tables in Netflx
 
 CREATE TABLE Country (
     country_id SERIAL PRIMARY KEY,
@@ -31,6 +30,7 @@ CREATE TABLE Account (
     last_name VARCHAR (255) NOT NULL,
     payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
     subscription_id INT NOT NULL,
+    active_subscription BOOLEAN NOT NULL DEFAULT 1,
     blocked BOOLEAN NOT NULL,
     verified BOOLEAN NOT NULL,
     street VARCHAR (255) NOT NULL,
@@ -39,21 +39,6 @@ CREATE TABLE Account (
     log_in_attempt_count INT,
     invited BOOLEAN
 );
-
--- Create the check_unique_account_limit function
-CREATE OR REPLACE FUNCTION check_unique_account_limit()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF (
-        SELECT COUNT(*)
-        FROM Profile
-        WHERE account_id = NEW.account_id
-    ) > 4 THEN
-        RAISE EXCEPTION 'More than 4 profiles for the same account are not allowed';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 CREATE TABLE Movie (
     movie_id SERIAL PRIMARY KEY,
@@ -81,24 +66,20 @@ CREATE TABLE Profile (
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
 );
 
--- Add the trigger to enforce the unique_account_limit constraint separately
-CREATE TRIGGER unique_account_limit_trigger
-BEFORE INSERT OR UPDATE
-ON Profile
-FOR EACH ROW
-EXECUTE FUNCTION check_unique_account_limit();
-
 CREATE TABLE Rating(
     rating_id SERIAL PRIMARY KEY,
     movie_id INT,
     series_id INT,
-    user_rating INT CHECK (user_rating BETWEEN 1 AND 5)
+    user_rating INT NOT NULL CHECK (user_rating BETWEEN 1 AND 5)
+    FOREIGN KEY (movie_id) REFERENCES Movie (movie_id) ON DELETE NO ACTION,
+    FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE NO ACTION
 );
 
 CREATE TABLE Season (
     season_id SERIAL PRIMARY KEY,
     series_id INT NOT NULL,
-    title VARCHAR (255)
+    title VARCHAR (255),
+    FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Series (
@@ -135,28 +116,187 @@ CREATE TABLE Available_languages (
 CREATE TABLE Movie_watch_history (
     movie_watch_history_id SERIAL PRIMARY KEY,
     movie_id INT NOT NULL,
+    watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    set_language_id INT NOT NULL,
-    set_subtitle_id INT,
-    FOREIGN KEY (movie_id) REFERENCES Movie (movie_id) ON DELETE CASCADE
+    language_settings JSON NOT NULL DEFAULT '{
+        "language_settings": []
+    }',
+    FOREIGN KEY (movie_id) REFERENCES Movie (movie_id) ON DELETE CASCADE,
+    FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Series_watch_history (
     series_watch_history_id SERIAL PRIMARY KEY,
+    series_id INT NOT NULL,
     episode_id INT NOT NULL,
+    watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    set_language_id INT NOT NULL,
-    set_subtitle_id INT,
-    FOREIGN KEY (episode_id) REFERENCES Episode (episode_id) ON DELETE CASCADE
+    language_settings JSON NOT NULL DEFAULT '{
+        "language_settings": []
+    }',
+    FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
+    FOREIGN KEY (episode_id) REFERENCES Episode (episode_id) ON DELETE CASCADE,
+    FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Watch_history (
     watch_history_id SERIAL PRIMARY KEY,
     profile_id INT NOT NULL,
-    movie_watch_history_id INT UNIQUE,
-    series_watch_history_id INT UNIQUE,
     finished BOOLEAN NOT NULL DEFAULT false,
     FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE,
-    FOREIGN KEY (movie_watch_history_id) REFERENCES Movie_watch_history (movie_watch_history_id) ON DELETE CASCADE,
-    FOREIGN KEY (series_watch_history_id) REFERENCES Series_watch_history (series_watch_history_id) ON DELETE CASCADE
+    );
+
+CREATE Invite_accounts (
+    invite_accounts_id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
+    email_of_invited_account VARCHAR(255) NOT NULL,
+    invite_send TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+    FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
+);
+-- Add index on email of invited account to be able run faster queries on the table
+CREATE INDEX invited_email ON Invite_accounts (email_of_invited_account);
+
+CREATE TABLE available_shows_country (
+    show_country_id SERIAL PRIMARY KEY,
+    country_id INT NOT NULL,
+    series_id INT,
+    movie_id INT,
+    FOREIGN KEY (country_id) REFERENCES Country (country_id) ON DELETE NO ACTION
+    FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
+    FOREIGN KEY (movie_id) REFERENCES  Movie (movie_id) ON DELETE CASCADE
+);
+
+-- Triggers:
+
+-- Create the check_unique_account_limit function
+CREATE OR REPLACE FUNCTION check_unique_account_limit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (
+        SELECT COUNT(*)
+        FROM Profile
+        WHERE account_id = NEW.account_id
+    ) > 4 THEN
+        RAISE EXCEPTION 'More than 4 profiles for the same account are not allowed';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add the trigger to enforce the unique_account_limit constraint separately
+CREATE TRIGGER unique_account_limit_trigger
+BEFORE INSERT OR UPDATE
+ON Profile
+FOR EACH ROW
+EXECUTE FUNCTION check_unique_account_limit();
+
+-- Stored procedures:
+
+
+-- Views:
+
+CREATE VIEW country_information_show AS (
+    SELECT
+        C.country_name,
+        'Movie' AS show_type,
+        M.title AS show_title,
+        AVG(R.user_rating) AS show_avg_rating,
+        G.title AS show_genre
+    FROM
+        Country C
+    LEFT JOIN available_shows_country SC ON C.country_id = SC.country_id
+    LEFT JOIN Movie M ON SC.movie_id = M.movie_id
+    LEFT JOIN Rating R ON M.movie_id = R.movie_id
+    LEFT JOIN Genre G ON M.genre_id = G.genre_id
+    GROUP BY
+        C.country_id, M.title, G.title
+
+    UNION ALL
+
+    SELECT
+        C.country_name,
+        'Series' AS show_type,
+        S.title AS show_title,
+        AVG(R.user_rating) AS show_avg_rating,
+        G.title AS show_genre
+    FROM
+        Country C
+    LEFT JOIN available_shows_country SC ON C.country_id = SC.country_id
+    LEFT JOIN Series S ON SC.series_id = S.series_id
+    LEFT JOIN Rating R ON S.series_id = R.series_id
+    LEFT JOIN Genre G ON S.genre_id = G.genre_id
+    GROUP BY
+        C.country_id, S.title, G.title
+);
+
+CREATE VIEW country_statistics AS (
+    SELECT
+        C.country_name,
+        COUNT(A.account_id) AS total_accounts,
+        COUNT(CASE WHEN A.active_subscription = 1 THEN A.account_id END) AS active_subscriptions,
+        COUNT(CASE WHEN A.active_subscription = 0 THEN A.account_id END) AS inactive_subscriptions,
+        (COUNT(CASE WHEN A.payment_method = 'PayPal' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_paypal,
+        (COUNT(CASE WHEN A.payment_method = 'Visa' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_visa,
+        (COUNT(CASE WHEN A.payment_method = 'MasterCard' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_mastercard,
+        (COUNT(CASE WHEN A.payment_method = 'Apple Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_apple_pay,
+        (COUNT(CASE WHEN A.payment_method = 'Google Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_google_pay,
+        (COUNT(CASE WHEN A.payment_method = 'iDEAL' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_ideal,
+        (COUNT(CASE WHEN S.title IS NOT NULL THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_subscribed_accounts,
+        (COUNT(CASE WHEN S.title IS NULL THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_unsubscribed_accounts,
+        SUM(S.subscription_price * A.active_subscription) AS subscription_revenue -- not sensitiv to netlfix subscription discount,yet!
+    FROM
+        Country C
+    LEFT JOIN available_shows_country SC ON C.country_id = SC.country_id
+    LEFT JOIN Account A ON C.country_id = A.country_id
+    LEFT JOIN Subscription S ON A.subscription_id = S.subscription_id
+    GROUP BY
+        C.country_name
+);
+
+CREATE VIEW senior AS (
+    SELECT 
+        A.email, 
+        A.first_name, 
+        A.last_name, 
+        A.street || ' ' || A.zip_code || ' ' || C.country_name AS "full_address", 
+        A.payment_method, 
+        S.title AS subscription_title, 
+        S.subscription_price, 
+        A.active_subscriber,
+        COUNT(P.profile_id) AS profile_count
+    FROM 
+        Account A
+    LEFT JOIN Country C ON A.country_id = C.country_id
+    LEFT JOIN Subscription S ON A.subscription_id = S.subscription_id
+    LEFT JOIN Profile P ON A.account_id = P.account_id
+    GROUP BY
+        A.email, 
+);
+
+CREATE VIEW medior AS (
+    SELECT 
+        A.email, 
+        A.first_name, 
+        A.last_name, 
+        A.street || ' ' || A.zip_code || ' ' || C.country_name AS "full_address", 
+        A.active_subscriber
+        COUNT(P.profile_id) AS profile_count
+    FROM 
+        Account A
+    LEFT JOIN Country C ON A.country_id = C.country_id
+    LEFT JOIN Profile P ON A.account_id = P.account_id
+    GROUP BY
+        A.email, 
+);
+
+CREATE VIEW senior AS (
+    SELECT 
+        A.email, 
+        A.active_subscriber
+        COUNT(P.profile_id) AS profile_count
+    FROM 
+        Account A
+    LEFT JOIN Profile P ON A.account_id = P.account_id
+    GROUP BY
+        A.email, 
 );
