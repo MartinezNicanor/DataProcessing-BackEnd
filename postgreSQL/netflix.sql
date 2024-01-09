@@ -28,16 +28,15 @@ CREATE TABLE Account (
     password VARCHAR (255) NOT NULL,
     first_name VARCHAR (255) NOT NULL,
     last_name VARCHAR (255) NOT NULL,
-    payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
-    subscription_id INT NOT NULL,
-    active_subscription BOOLEAN NOT NULL DEFAULT 1,
+    active_subscription BOOLEAN NOT NULL DEFAULT false,
     blocked BOOLEAN NOT NULL,
     verified BOOLEAN NOT NULL,
     street VARCHAR (255) NOT NULL,
     zip_code VARCHAR (10) NOT NULL,
     country_id INT NOT NULL,
     log_in_attempt_count INT,
-    invited BOOLEAN
+    invited BOOLEAN,
+    user_type VARCHAR(50) NOT NULL CHECK (payment_method IN ('User','Junior','Medior','Senior'))
 );
 
 CREATE TABLE Movie (
@@ -70,7 +69,7 @@ CREATE TABLE Rating(
     rating_id SERIAL PRIMARY KEY,
     movie_id INT,
     series_id INT,
-    user_rating INT NOT NULL CHECK (user_rating BETWEEN 1 AND 5)
+    user_rating INT NOT NULL CHECK (user_rating BETWEEN 1 AND 5),
     FOREIGN KEY (movie_id) REFERENCES Movie (movie_id) ON DELETE NO ACTION,
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE NO ACTION
 );
@@ -94,6 +93,16 @@ CREATE TABLE Subscription (
     title VARCHAR (255) NOT NULL,
     description TEXT NOT NULL,
     subscription_price FLOAT NOT NULL DEFAULT 7.99
+);
+
+CREATE TABLE Account_subscription(
+    account_subscription_id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
+    subscription_id INT NOT NULL,
+    payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
+    price FLOAT NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (subscription_id) REFERENCES Subscription (subscription_id) ON DELETE NO ACTION ON UPDATE CASCADE
 );
 
 CREATE TABLE Subtitle (
@@ -143,25 +152,25 @@ CREATE TABLE Watch_history (
     watch_history_id SERIAL PRIMARY KEY,
     profile_id INT NOT NULL,
     finished BOOLEAN NOT NULL DEFAULT false,
-    FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE,
+    FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE
     );
 
-CREATE Invite_accounts (
-    invite_accounts_id SERIAL PRIMARY KEY,
-    account_id INT NOT NULL,
-    email_of_invited_account VARCHAR(255) NOT NULL,
-    invite_send TIMESTAMP NOT NULL DEFAULT current_timestamp(),
-    FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
+CREATE TABLE Invite (
+    invite_id SERIAL PRIMARY KEY,
+    inviting_email VARCHAR(100) NOT NULL,
+    invited_email VARCHAR(255) NOT NULL,
+    invite_send TIMESTAMP NOT NULL DEFAULT current_timestamp,
+    FOREIGN KEY (inviting_email) REFERENCES Account (email) ON DELETE CASCADE
 );
 -- Add index on email of invited account to be able run faster queries on the table
-CREATE INDEX invited_email ON Invite_accounts (email_of_invited_account);
+CREATE INDEX invited_email ON Invite (invited_email);
 
 CREATE TABLE available_shows_country (
     show_country_id SERIAL PRIMARY KEY,
     country_id INT NOT NULL,
     series_id INT,
     movie_id INT,
-    FOREIGN KEY (country_id) REFERENCES Country (country_id) ON DELETE NO ACTION
+    FOREIGN KEY (country_id) REFERENCES Country (country_id) ON DELETE NO ACTION,
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
     FOREIGN KEY (movie_id) REFERENCES  Movie (movie_id) ON DELETE CASCADE
 );
@@ -254,49 +263,49 @@ CREATE VIEW country_statistics AS (
 );
 
 CREATE VIEW senior AS (
-    SELECT 
-        A.email, 
-        A.first_name, 
-        A.last_name, 
-        A.street || ' ' || A.zip_code || ' ' || C.country_name AS "full_address", 
-        A.payment_method, 
-        S.title AS subscription_title, 
-        S.subscription_price, 
-        A.active_subscriber,
+    SELECT
+        A.email,
+        A.first_name,
+        A.last_name,
+        A.street || ' ' || A.zip_code || ' ' || C.country_name AS "full_address",
+        A.payment_method,
+        S.title AS subscription_title,
+        S.subscription_price,
+        A.active_subscription,
         COUNT(P.profile_id) AS profile_count
-    FROM 
+    FROM
         Account A
     LEFT JOIN Country C ON A.country_id = C.country_id
     LEFT JOIN Subscription S ON A.subscription_id = S.subscription_id
     LEFT JOIN Profile P ON A.account_id = P.account_id
     GROUP BY
-        A.email, 
+        A.email
 );
 
 CREATE VIEW medior AS (
-    SELECT 
-        A.email, 
-        A.first_name, 
-        A.last_name, 
-        A.street || ' ' || A.zip_code || ' ' || C.country_name AS "full_address", 
-        A.active_subscriber
+    SELECT
+        A.email,
+        A.first_name,
+        A.last_name,
+        A.street || ' ' || A.zip_code || ' ' || C.country_name AS "full_address",
+        A.active_subscription,
         COUNT(P.profile_id) AS profile_count
-    FROM 
+    FROM
         Account A
     LEFT JOIN Country C ON A.country_id = C.country_id
     LEFT JOIN Profile P ON A.account_id = P.account_id
     GROUP BY
-        A.email, 
+        A.email
 );
 
 CREATE VIEW senior AS (
-    SELECT 
-        A.email, 
-        A.active_subscriber
+    SELECT
+        A.email,
+        A.active_subscription,
         COUNT(P.profile_id) AS profile_count
-    FROM 
+    FROM
         Account A
     LEFT JOIN Profile P ON A.account_id = P.account_id
     GROUP BY
-        A.email, 
+        A.email
 );
