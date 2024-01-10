@@ -1,3 +1,5 @@
+
+
 -- 3.0 creating script for tables in Netflx
 
 CREATE TABLE Country (
@@ -65,6 +67,13 @@ CREATE TABLE Profile (
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
 );
 
+CREATE TABLE Series (
+    series_id SERIAL PRIMARY KEY,
+    title VARCHAR (255) NOT NULL,
+    genre_id INT NOT NULL,
+    FOREIGN KEY (genre_id) REFERENCES Genre (genre_id) ON DELETE NO ACTION
+);
+
 CREATE TABLE Rating(
     rating_id SERIAL PRIMARY KEY,
     movie_id INT,
@@ -81,12 +90,7 @@ CREATE TABLE Season (
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Series (
-    series_id SERIAL PRIMARY KEY,
-    title VARCHAR (255) NOT NULL,
-    genre_id INT NOT NULL,
-    FOREIGN KEY (genre_id) REFERENCES Genre (genre_id) ON DELETE NO ACTION
-);
+
 
 CREATE TABLE Subscription (
     subscription_id SERIAL PRIMARY KEY,
@@ -122,6 +126,13 @@ CREATE TABLE Available_languages (
     FOREIGN KEY (subtitle_id) REFERENCES Subtitle (subtitle_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE TABLE Watch_history (
+    watch_history_id SERIAL PRIMARY KEY,
+    profile_id INT NOT NULL,
+    finished BOOLEAN NOT NULL DEFAULT false,
+    FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE
+);
+
 CREATE TABLE Movie_watch_history (
     movie_watch_history_id SERIAL PRIMARY KEY,
     movie_id INT NOT NULL,
@@ -147,13 +158,6 @@ CREATE TABLE Series_watch_history (
     FOREIGN KEY (episode_id) REFERENCES Episode (episode_id) ON DELETE CASCADE,
     FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
 );
-
-CREATE TABLE Watch_history (
-    watch_history_id SERIAL PRIMARY KEY,
-    profile_id INT NOT NULL,
-    finished BOOLEAN NOT NULL DEFAULT false,
-    FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE
-    );
 
 CREATE TABLE Invite (
     invite_id SERIAL PRIMARY KEY,
@@ -242,22 +246,23 @@ CREATE VIEW country_statistics AS (
     SELECT
         C.country_name,
         COUNT(A.account_id) AS total_accounts,
-        COUNT(CASE WHEN A.active_subscription = 1 THEN A.account_id END) AS active_subscriptions,
-        COUNT(CASE WHEN A.active_subscription = 0 THEN A.account_id END) AS inactive_subscriptions,
-        (COUNT(CASE WHEN A.payment_method = 'PayPal' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_paypal,
-        (COUNT(CASE WHEN A.payment_method = 'Visa' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_visa,
-        (COUNT(CASE WHEN A.payment_method = 'MasterCard' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_mastercard,
-        (COUNT(CASE WHEN A.payment_method = 'Apple Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_apple_pay,
-        (COUNT(CASE WHEN A.payment_method = 'Google Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_google_pay,
-        (COUNT(CASE WHEN A.payment_method = 'iDEAL' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_ideal,
+        COUNT(CASE WHEN A.active_subscription = true THEN A.account_id END) AS active_subscriptions,
+        COUNT(CASE WHEN A.active_subscription = false THEN A.account_id END) AS inactive_subscriptions,
+        (COUNT(CASE WHEN AC.payment_method = 'PayPal' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_paypal,
+        (COUNT(CASE WHEN AC.payment_method = 'Visa' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_visa,
+        (COUNT(CASE WHEN AC.payment_method = 'MasterCard' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_mastercard,
+        (COUNT(CASE WHEN AC.payment_method = 'Apple Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_apple_pay,
+        (COUNT(CASE WHEN AC.payment_method = 'Google Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_google_pay,
+        (COUNT(CASE WHEN AC.payment_method = 'iDEAL' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_ideal,
         (COUNT(CASE WHEN S.title IS NOT NULL THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_subscribed_accounts,
         (COUNT(CASE WHEN S.title IS NULL THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_unsubscribed_accounts,
-        SUM(S.subscription_price * A.active_subscription) AS subscription_revenue -- not sensitiv to netlfix subscription discount,yet!
+        SUM(S.subscription_price * CASE WHEN A.active_subscription THEN 1 ELSE 0 END) AS subscription_revenue -- not sensitiv to netlfix subscription discount,yet!
     FROM
         Country C
     LEFT JOIN available_shows_country SC ON C.country_id = SC.country_id
     LEFT JOIN Account A ON C.country_id = A.country_id
-    LEFT JOIN Subscription S ON A.subscription_id = S.subscription_id
+    LEFT JOIN Account_subscription AC ON AC.account_id = A.account_id
+    LEFT JOIN Subscription S ON AC.subscription_id = S.subscription_id
     GROUP BY
         C.country_name
 );
@@ -268,7 +273,7 @@ CREATE VIEW senior AS (
         A.first_name,
         A.last_name,
         A.street || ' ' || A.zip_code || ' ' || C.country_name AS "full_address",
-        A.payment_method,
+        AC.payment_method,
         S.title AS subscription_title,
         S.subscription_price,
         A.active_subscription,
@@ -276,10 +281,11 @@ CREATE VIEW senior AS (
     FROM
         Account A
     LEFT JOIN Country C ON A.country_id = C.country_id
-    LEFT JOIN Subscription S ON A.subscription_id = S.subscription_id
+    LEFT JOIN Account_subscription AC ON AC.account_id = A.account_id
+    LEFT JOIN Subscription S ON AC.subscription_id = S.subscription_id
     LEFT JOIN Profile P ON A.account_id = P.account_id
     GROUP BY
-        A.email
+        A.email, A.first_name, A.email, A.last_name, A.street || ' ' || A.zip_code || ' ' || C.country_name, AC.payment_method, S.title, S.subscription_price, A.active_subscription
 );
 
 CREATE VIEW medior AS (
@@ -295,10 +301,10 @@ CREATE VIEW medior AS (
     LEFT JOIN Country C ON A.country_id = C.country_id
     LEFT JOIN Profile P ON A.account_id = P.account_id
     GROUP BY
-        A.email
+        A.email, A.email, A.first_name, A.last_name, A.street || ' ' || A.zip_code || ' ' || C.country_name, A.active_subscription
 );
 
-CREATE VIEW senior AS (
+CREATE VIEW junior AS (
     SELECT
         A.email,
         A.active_subscription,
@@ -307,5 +313,5 @@ CREATE VIEW senior AS (
         Account A
     LEFT JOIN Profile P ON A.account_id = P.account_id
     GROUP BY
-        A.email
+        A.email, A.email, A.active_subscription
 );
