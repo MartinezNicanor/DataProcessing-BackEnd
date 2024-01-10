@@ -36,7 +36,7 @@ CREATE TABLE Account (
     country_id INT NOT NULL,
     log_in_attempt_count INT,
     invited BOOLEAN,
-    user_type VARCHAR(50) NOT NULL CHECK (payment_method IN ('User','Junior','Medior','Senior'))
+    user_type VARCHAR(50) NOT NULL CHECK (user_type IN ('User','Junior','Medior','Senior'))
 );
 
 CREATE TABLE Movie (
