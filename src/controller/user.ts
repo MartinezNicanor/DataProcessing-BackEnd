@@ -83,7 +83,7 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
 export const getUserProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
     const profile_id: string = req.params.profileId!;
-    
+
     //Check if profile id is a valid string number
     if (isNaN(Number(profile_id))) {
         responder(res, 400, 'error', 'Profile ID must be a number');
@@ -112,7 +112,7 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
             return;
         }
 
-        responder(res, 200,'data', profile);
+        responder(res, 200, 'data', profile);
         return;
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
@@ -121,7 +121,7 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
 };
 
 
-export const patchUpdateProfile = async (req: Request & {user?: User}, res: Response): Promise<void> => {
+export const patchUpdateProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     //profile interface to organize the data
     interface Profile {
@@ -164,7 +164,7 @@ export const patchUpdateProfile = async (req: Request & {user?: User}, res: Resp
         return;
     }
 
-        //get profile from db
+    //get profile from db
     try {
         //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const profile: Profile | null = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
@@ -185,7 +185,7 @@ export const patchUpdateProfile = async (req: Request & {user?: User}, res: Resp
         } else {
             profile_image = profile.profile_image;
         }
-        
+
         if (profileName === '') {
             profileName = profile.profile_name;
         }
@@ -210,10 +210,10 @@ export const patchUpdateProfile = async (req: Request & {user?: User}, res: Resp
             });
 
             responder(res, 200, 'message', 'Profile updated successfull');
-    } catch (err) {
-        responder(res, 500, 'error', 'Internal Server Error');
-        return;
-    }
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal Server Error');
+            return;
+        }
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
@@ -299,7 +299,7 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
     }
 
     //validate input values crazy array validation
-    if (validateArrayStrings([movie, series, genres]) === false  || (validateArrayStrings([viewing_class]) === false) && viewing_class.every(item => allowedViewingClasses.includes(item.trim())) === false) {
+    if (validateArrayStrings([movie, series, genres]) === false || (validateArrayStrings([viewing_class]) === false) && viewing_class.every(item => allowedViewingClasses.includes(item.trim())) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     }
@@ -349,12 +349,12 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
     }
 };
 
-export const postSendInvitation = async (req: Request & {user? : User}, res: Response): Promise<void> => {
-    
+export const postSendInvitation = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
     const email: string = req.body.email!;
 
     //validate input values
-   if (!isValidEmail(email)) {
+    if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email', `err`, `${email} is not a valid email`);
         return;
     }
@@ -373,11 +373,11 @@ export const postSendInvitation = async (req: Request & {user? : User}, res: Res
         }
 
         //Generate the token
-        const token: string = jwtTokenGenerator('24h','invitingEmail',req.user?.email!, 'invitedEmail', email, 'purpose', 'invite')
+        const token: string = jwtTokenGenerator('24h', 'invitingEmail', req.user?.email!, 'invitedEmail', email, 'purpose', 'invite')
 
         //Send the email
         try {
-            const info =  await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
+            const info = await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
             console.log('Email sent: ', info.response);
             responder(res, 200, 'message', 'Invitation sent successfully');
             return;
@@ -390,3 +390,24 @@ export const postSendInvitation = async (req: Request & {user? : User}, res: Res
         return;
     }
 };
+
+export const deleteDeleteUserAccount = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+    //Delete the account
+    try {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        //transaction to delete the account and the profiles associated with the account
+        await db.tx(async (t) => {
+            await t.none('DELETE FROM Profile WHERE account_id = ${account_id}', {
+                account_id: req.user?.account_id
+            });
+            await t.none('DELETE FROM Account WHERE account_id = ${account_id}', {
+                account_id: req.user?.account_id
+            });
+        });
+        responder(res, 200, 'message', 'Account deleted successfully');
+        return;
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+}

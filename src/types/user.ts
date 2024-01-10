@@ -33,6 +33,13 @@ export interface Profile {
     } 
 }
 
+export interface Subscription {
+  subscription_id: number,
+  subscribed: boolean,
+  type: string,
+  price: number,
+  date: string,
+}
 
 
 

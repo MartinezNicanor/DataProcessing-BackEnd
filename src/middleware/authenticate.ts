@@ -30,11 +30,13 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
   try {
     const decodedToken = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET!) as jwt.JwtPayload;
 
+    //check if token is for authentication
     if (decodedToken.data['purpose'] !== 'authentication') {
       responder(res, 401, 'error', 'Not Authorized');
       return;
     }
 
+    //check if token is valid email
     if (!isValidEmail(decodedToken.data['email'])) {
       responder(res, 401, 'error', 'Malformed or Invalid JWT token');
       return;

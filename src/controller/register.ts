@@ -11,39 +11,41 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   const email: string = req.body.email!;
   const password: string = req.body.password!;
+  const firstName: string = req.body.firstName!;
+  const lastName: string = req.body.lastName!;
 
-  console.log(email, password);
-  // const firstName: string = req.body.firstName!;
-  // const lastName: string = req.body.lastName!;
-  // const paymentMethod: string = req.body.paymentMethod!;
-  // const subscriptionId: number = req.body.subscriptionId!;
-  // const street: string = req.body.street!;
-  // const zipCode: string = req.body.zipCode!;
-  // const countryId: number = req.body.countryId!;
+  const street: string = req.body.street!;
+  const zipCode: string = req.body.zipCode!;
+  const countryId: number = req.body.countryId!;
+  const userType: string = req.body.userType!;
+
+  const paymentMethod: string = req.body.paymentMethod!;
+  const subscriptionId: number = req.body.subscriptionId!;
+  const price: number = req.body.price!;
 
   //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
 
-  // if (validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
-  //   responder(res, 400, 'error', 'Invalid input values');
-  //   return;
-  // }
+  if (validateStrings([firstName, lastName, paymentMethod, street, zipCode, userType]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
 
-  // if (validateNumbers([subscriptionId, countryId]) === false) {
-  //   responder(res, 400, 'error', 'Invalid input values');
-  //   return;
-  // }
+  if (validateNumbers([subscriptionId, countryId]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
 
-  // //Validate email
-  // if (!isValidEmail(email)) {
-  //   responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.')
-  //   return;
-  // }
+  //Validate email
+  if (!isValidEmail(email)) {
+    responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.')
+    return;
+  }
 
-  // //Validate password
-  // if (!isValidPassword(password)) {
-  //   responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid')
-  //   return;
-  // }
+  //Validate password
+  if (!isValidPassword(password)) {
+    responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid')
+    return;
+  }
 
   //Check if email is already in DB
   try {
@@ -58,7 +60,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     }
 
   } catch (err) {
-    console.log(1);
     responder(res, 500, 'error', 'Internal Server Error')
     return;
   }
@@ -67,6 +68,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   const hashedPassword = await bcrypt.hash(password, 10);
 
   //TODO: GO THROUGH SQL QUERY WITH JOEY WHEN HE IS DONE WITH DB
+  //TODO  MAKE SUBSCRIPTION ID AUTOMATICALLY Incremented and unique
   try {
     //! DB CONNECTION HERE -----------------------------------------------------------------------------------
     await db.none(`INSERT INTO Account (email, password, first_name, last_name, payment_method,
@@ -78,18 +80,18 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
       first_name: 'firstName',
       last_name: 'lastName',
       payment_method: 'Visa',
-      subscription_id: 1,
+      subscription_id: 4,
       blocked: false,
       verified: false,
       street: 'street',
       zip_code: 'zipCode',
       country_id: 1,
       log_in_attempt_count: 0,
-      invited: false
+      invited: false,
+      accountCreated: new Date()
     });
 
   } catch (err) {
-    console.log(2);
     responder(res, 500, 'error', 'Something went wrong')
     return;
   }
@@ -149,6 +151,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         //Update inviting user to have invited = true
         //Delete invite object from db
         //Update invited user to have invited = true and verified = true
+        //Create a new subscription for the invited user with a free trial
         try {
           await db.tx(async (t) => {
             // Update inviting user to have invited = 
@@ -169,6 +172,14 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
             await t.none('DELETE FROM Invite WHERE invited_email = $<email>', {
               email: invitedObject.invited_email
             });
+
+            await t.none('INSERT INTO Subscription (subscribed, type, price, date) VALUES ($<subscribed>, $<type>, $<price>, $<date>)', {
+              subscribed: false,
+              subscrition_id: 4,
+              price: 0,
+              date: new Date()
+            });
+
           });
           responder(res, 200, 'message', 'Account verified successfully');
           return
@@ -184,9 +195,18 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
       //If there is no invited object, execute the following just update the verified column in the Account table to true
       try {
         //! DB CONNECTION HERE -----------------------------------------------------------------------------------
-        await db.none('UPDATE Account SET verified = $<verified> WHERE email = $<email>', {
-          verified: true,
-          email: email
+        await db.tx(async (t) => {
+          await t.none('UPDATE Account SET verified = $<verified> WHERE email = $<email>', {
+            verified: true,
+            email: email
+          });
+
+          await t.none('INSERT INTO Subscription (subscribed, type, price, date) VALUES ($<subscribed>, $<type>, $<price>, $<date>)', {
+            subscribed: false,
+            type: 'free trial',
+            price: 0,
+            date: new Date()
+          });
         })
         responder(res, 200, 'message', 'Account verified successfully')
         return;
@@ -312,5 +332,3 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
     return;
   }
 };
-
-// 
