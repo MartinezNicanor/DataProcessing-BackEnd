@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import responder from '../utils/responder';
 import { db } from '../db';
 import { User, Profile } from '../types/user'
+import { isValidEmail } from '../utils/validators';
 
 dotenv.config();
 
@@ -34,6 +35,11 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
       return;
     }
 
+    if (!isValidEmail(decodedToken.data['email'])) {
+      responder(res, 401, 'error', 'Malformed or Invalid JWT token');
+      return;
+    }
+
     try {
       // Fetch user data from the database
       const user = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
@@ -54,7 +60,6 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
           responder(res, 401, 'error', 'User not authenticated');
           return;
         }
-
         next();
       } else {
         responder(res, 401, 'error', 'User not found in the database');

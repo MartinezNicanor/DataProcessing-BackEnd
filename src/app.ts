@@ -29,6 +29,9 @@ app.use("/login", loginRoutes);
 const userRoutes = require('./routes/user')
 app.use("/user" , userRoutes)
 
+const contentRoutes = require('./routes/content')
+app.use("/content", contentRoutes);
+
 //Test Route
 const indexRoutes = require('./routes/index');
 app.use("/", indexRoutes);

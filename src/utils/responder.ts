@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import xml from 'xml';
+import xml2js from 'xml2js';
 
 function responder(res: Response, status: number, ...args: any[]): void {
 
@@ -18,11 +18,11 @@ function responder(res: Response, status: number, ...args: any[]): void {
         return;
     }
 
+
     // Check if the client accepts XML
     if (res.req?.accepts('application/xml')) {
         res.setHeader('Accept', 'application/xml');
-        const xmlData = { response: Object.entries(data).map(([key, value]) => ({ [key]: value })) };
-        res.status(status).send(xml(xmlData, { declaration: true }));
+        res.status(status).send(jsonToXml(data));
         return;
     }
 
@@ -30,6 +30,12 @@ function responder(res: Response, status: number, ...args: any[]): void {
     res.setHeader('Accept', 'application/json');
     res.status(status).json(data);
     return;
+}
+
+function jsonToXml(json : any) {
+    const builder = new xml2js.Builder();
+    const xml = builder.buildObject(json);
+    return xml;
 }
 
 export default responder;

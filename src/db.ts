@@ -12,7 +12,7 @@ const dbConfig = {
   password: process.env.POSTGRES_PASSWORD,
   host: 'localhost',
   port: 5432,
-  database: 'login',
+  database: 'netflix',
 };
 const db: IDatabase<any> = pgp(dbConfig);
 
