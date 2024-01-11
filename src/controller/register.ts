@@ -11,39 +11,59 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   const email: string = req.body.email!;
   const password: string = req.body.password!;
+  const firstName: string = req.body.firstName!;
+  const lastName: string = req.body.lastName!;
+  const street: string = req.body.street!;
+  const zipCode: string = req.body.zipCode!;
+  const countryId: number = req.body.countryId!;
 
-  console.log(email, password);
-  // const firstName: string = req.body.firstName!;
-  // const lastName: string = req.body.lastName!;
-  // const paymentMethod: string = req.body.paymentMethod!;
-  // const subscriptionId: number = req.body.subscriptionId!;
-  // const street: string = req.body.street!;
-  // const zipCode: string = req.body.zipCode!;
-  // const countryId: number = req.body.countryId!;
+  let age: number = (req.body.age !== null && req.body.age >= 0) ? req.body.age : 0;
+
+  const paymentMethod: string = req.body.paymentMethod!;
+  const subscriptionId: number = req.body.subscriptionId!;
+
+  let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en';
+
+  console.log(email, password, firstName, lastName, street, zipCode, countryId, age, paymentMethod, subscriptionId, language)
+
 
   //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
+  if (language.includes(",")) {
+    const preferredLanguage: string[] = language.split(',')
+    language = preferredLanguage[0].trim();
+  }
 
-  // if (validateStrings([firstName, lastName, paymentMethod, street, zipCode]) === false) {
-  //   responder(res, 400, 'error', 'Invalid input values');
-  //   return;
-  // }
+  if (validateStrings([firstName, lastName, paymentMethod, street, zipCode, language]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
 
-  // if (validateNumbers([subscriptionId, countryId]) === false) {
-  //   responder(res, 400, 'error', 'Invalid input values');
-  //   return;
-  // }
+  if (paymentMethod !== 'Visa' && paymentMethod !== 'Mastercard' && paymentMethod !== 'Paypal' && paymentMethod !== 'Apple Pay' && paymentMethod !== 'Google Pay' && paymentMethod !== 'iDEAL') {
+    responder(res, 400, 'error', 'Invalid payment method');
+    return;
+  }
 
-  // //Validate email
-  // if (!isValidEmail(email)) {
-  //   responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.')
-  //   return;
-  // }
+  if (validateNumbers([subscriptionId, countryId]) === false) {
+    responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
 
-  // //Validate password
-  // if (!isValidPassword(password)) {
-  //   responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid')
-  //   return;
-  // }
+  if (subscriptionId > 3) {
+    responder(res, 400, 'error', 'Invalid subscription id');
+    return;
+  }
+
+  //Validate email
+  if (!isValidEmail(email)) {
+    responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.')
+    return;
+  }
+
+  //Validate password
+  if (!isValidPassword(password)) {
+    responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid')
+    return;
+  }
 
   //Check if email is already in DB
   try {
@@ -67,30 +87,58 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   const hashedPassword = await bcrypt.hash(password, 10);
 
   //TODO: GO THROUGH SQL QUERY WITH JOEY WHEN HE IS DONE WITH DB
+  console.log('here');
   try {
-    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
-    await db.none(`INSERT INTO Account (email, password, first_name, last_name, payment_method,
-      subscription_id, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited) 
-      VALUES ($<email>, $<password>, $<first_name>, $<last_name>, $<payment_method>, $<subscription_id>,
-      $<blocked>, $<verified>, $<street>, $<zip_code>, $<country_id>, $<log_in_attempt_count>, $<invited>)`, {
-      email: email,
-      password: hashedPassword,
-      first_name: 'firstName',
-      last_name: 'lastName',
-      payment_method: 'Visa',
-      subscription_id: 1,
-      blocked: false,
-      verified: false,
-      street: 'street',
-      zip_code: 'zipCode',
-      country_id: 1,
-      log_in_attempt_count: 0,
-      invited: false
-    });
+    await db.tx(async (t) => {
+      // Insert new account
+      await t.none(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+        VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+        $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+        $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>)`, {
+        email: email,
+        password: hashedPassword,
+        first_name: firstName,
+        last_name: lastName,
+        active_subscription: false,
+        blocked: false,
+        verified: false,
+        street: street,
+        zip_code: zipCode,
+        country_id: countryId,
+        log_in_attempt_count: 0,
+        invited: false,
+        user_type: 'User'
+      });
+        console.log('here2')
+      const account_id = await t.one(`SELECT account_id FROM Account WHERE email = $<email>`, {
+        email: email
+      });
+      console.log('here3')
+      const subscriptionPrice = await t.one(`SELECT subscription_price FROM Subscription WHERE subscription_id = $<subscriptionId>`, {
+        subscriptionId: subscriptionId
+      });
+      console.log('here4')
+      await t.none(`INSERT INTO Account_subscription (account_id, subscription_id, payment_method, price) 
+      VALUES ($<account_id>, $<subscription_id>, $<payment_method>, $<price>)`, {
+        account_id: account_id['account_id'],
+        subscription_id: subscriptionId,
+        payment_method: paymentMethod,
+        price: subscriptionPrice.subscription_price
+      });
 
+      console.log('here5')
+      await t.none(`INSERT INTO Profile (account_id, age, profile_image, profile_name, language)
+      VALUES ($<account_id>, $<age>, $<profile_image>, $<profile_name>, $<language>)`, {
+        account_id: account_id['account_id'],
+        age: age,
+        profile_image: 'default',
+        profile_name: (`${firstName}-${lastName}`).toLowerCase(),
+        language: language
+      });
+    });
   } catch (err) {
-    console.log(2);
-    responder(res, 500, 'error', 'Something went wrong')
+    console.log(err)
+    responder(res, 500, 'error', 'Internal Server Error');
     return;
   }
 
