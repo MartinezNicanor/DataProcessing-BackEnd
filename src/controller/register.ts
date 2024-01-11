@@ -86,11 +86,9 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   //hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  //TODO: GO THROUGH SQL QUERY WITH JOEY WHEN HE IS DONE WITH DB
-  console.log('here');
   try {
     await db.tx(async (t) => {
-      // Insert new account
+      // Create account
       await t.none(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
         VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
         $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
@@ -109,15 +107,18 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
         invited: false,
         user_type: 'User'
       });
-        console.log('here2')
+
+      // grab account id
       const account_id = await t.one(`SELECT account_id FROM Account WHERE email = $<email>`, {
         email: email
       });
-      console.log('here3')
+
+      // grab subscription price
       const subscriptionPrice = await t.one(`SELECT subscription_price FROM Subscription WHERE subscription_id = $<subscriptionId>`, {
         subscriptionId: subscriptionId
       });
-      console.log('here4')
+
+      // Create account subscription
       await t.none(`INSERT INTO Account_subscription (account_id, subscription_id, payment_method, price) 
       VALUES ($<account_id>, $<subscription_id>, $<payment_method>, $<price>)`, {
         account_id: account_id['account_id'],
@@ -126,7 +127,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
         price: subscriptionPrice.subscription_price
       });
 
-      console.log('here5')
+      // Create profile
       await t.none(`INSERT INTO Profile (account_id, age, profile_image, profile_name, language)
       VALUES ($<account_id>, $<age>, $<profile_image>, $<profile_name>, $<language>)`, {
         account_id: account_id['account_id'],
@@ -137,7 +138,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
       });
     });
   } catch (err) {
-    console.log(err)
     responder(res, 500, 'error', 'Internal Server Error');
     return;
   }
@@ -148,12 +148,10 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   try {
     const info = await sendMail(email, 'Account Verification', 'register/verification/', token, 'Verify Your account! This link is valid for 30 min');
     console.log('Email sent: ', info.response);
-
     responder(res, 201, 'message', 'Register successfull, verification email sent')
     return;
   } catch (err) {
-    console.log(3);
-    responder(res, 500, 'error', 'Error sending email')
+    responder(res, 500, 'error', 'Error sending email');
     return;
   }
 };
@@ -165,8 +163,8 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
   const token: string = req.params.token!;
 
   if (token === undefined) {
-    responder(res, 400, 'error', 'Invalid Request')
-    return
+    responder(res, 400, 'error', 'Invalid Request');
+    return;
   }
 
   //verify token and activate account in db
@@ -188,8 +186,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
     }
 
     try {
-      // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
-      const invitedObject = await db.oneOrNone('SELECT * FROM Invite WHERE invited_email = ${invitedEmail}', {
+      const invitedObject = await db.oneOrNone('SELECT * FROM invite WHERE invited_email = ${invitedEmail}', {
         invitedEmail: email
       });
       if (invitedObject) {
@@ -199,39 +196,59 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         //Update invited user to have invited = true and verified = true
         try {
           await db.tx(async (t) => {
-            // Update inviting user to have invited = 
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            // grab inviting user's account id
+            const invitingEmailObject: any = await t.one('SELECT * FROM Account WHERE email = $<email>', {
+              email: invitedObject.inviting_email
+            });
+
+            // grab invited user's account id
+            const invitedEmailObject: any = await t.one('SELECT * FROM Account WHERE email = $<email>', {
+              email: invitedObject.invited_email
+            });
+
+            // 1. Update inviting user to have invited = true
             await t.none('UPDATE Account SET invited = $<invited> WHERE email = $<email>', {
               invited: true,
               email: invitedObject.inviting_email
             });
 
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            // 2. Update invited user to have invited = true and verified = true
             await t.none('UPDATE Account SET invited = $<invited>, verified = $<verified> WHERE email = $<email>', {
               invited: true,
               verified: true,
-              email: email
+              email: invitedObject.invited_email
             });
 
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            // 3. Update inviting user's subscription to have price - 2 (also check if inviting user is invited to prevent infinite money glitch)
+            if (invitingEmailObject['invited'] === false) {
+              await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
+                decrementAmount: 2.0,
+                account_id: invitingEmailObject['account_id']
+              });
+            }
+
+            // 4. Update invited user's subscription to have price - 2 (Invite can not be sent to an account already in the db therefore no need to check if invited user is invited)
+            await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
+              decrementAmount: 2.0,
+              account_id: invitedEmailObject['account_id']
+            });
+
+            // 5. Delete invite object from db
             await t.none('DELETE FROM Invite WHERE invited_email = $<email>', {
               email: invitedObject.invited_email
             });
           });
+
           responder(res, 200, 'message', 'Account verified successfully');
-          return
+          return;
         } catch (err) {
           responder(res, 500, 'error', 'Internal Server Error');
-          return
+          return;
         }
-
-        /* If there is an invited object, update the invited column in the Account table to true for the inviting 
-        user and delete the invite object from the Invite table and  */
       }
 
       //If there is no invited object, execute the following just update the verified column in the Account table to true
       try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         await db.none('UPDATE Account SET verified = $<verified> WHERE email = $<email>', {
           verified: true,
           email: email
@@ -242,14 +259,14 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         responder(res, 500, 'error', 'Internal Server Error')
         return;
       }
-    } catch (error) {
+    } catch (err) {
+      console.log(err);
       responder(res, 500, 'error', 'Internal Server Error')
       return;
     }
     //If everything is okay, send good response
   }
   catch (err: any) {
-
     if (err.name === 'TokenExpiredError') {
       responder(res, 401, 'error', 'Expired Link');
       return;
@@ -299,7 +316,6 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
     }
 
     try {
-      // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
       // check if invited email is already registered
       const user: null | string = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
         email: invitedEmail
@@ -313,7 +329,6 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
 
       if (!user) {
         try {
-          // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
           // check if invited email is already invited by the same user
           const inviteObject = await db.oneOrNone('SELECT * FROM Invite WHERE invited_email = ${invitedEmail} AND inviting_email = ${invitingEmail}', {
             invitedEmail: invitedEmail,
@@ -329,7 +344,6 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
           // if invited email is not already invited by the same user, add it to the db
           if (inviteObject === null) {
             try {
-              // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
               await db.none(`INSERT INTO Invite (invited_email, inviting_email) VALUES ($<invitedEmail>, $<invitingEmail>)`, {
                 invitedEmail: invitedEmail,
                 invitingEmail: invitingEmail
