@@ -245,7 +245,6 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
               email: invitedObject.invited_email
             });
           });
-
           responder(res, 200, 'message', 'Account verified successfully');
           return;
         } catch (err) {

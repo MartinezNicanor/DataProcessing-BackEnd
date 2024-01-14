@@ -165,7 +165,6 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
 
     //get profile from db
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const profile: Profile | null = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
             profile_id: profile_id,
             account_id: req.user?.account_id
@@ -199,7 +198,6 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
 
         //Update the profile
         try {
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await db.none('UPDATE Profile SET profile_name = $<profileName>, profile_image = $<profile_image>, age = $<age>, language = $<language> WHERE profile_id = $<profile_id>', {
                 profileName: profileName,
                 profile_image: profile_image,
@@ -238,7 +236,6 @@ export const deleteDeleteProfile = async (req: Request & { user?: User }, res: R
 
     //get profile from db
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
             profile_id: profile_id,
             account_id: req.user?.account_id
@@ -252,7 +249,6 @@ export const deleteDeleteProfile = async (req: Request & { user?: User }, res: R
 
         //Delete the profile
         try {
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await db.none('DELETE FROM Profile WHERE profile_id = ${profile_id}', {
                 profile_id: profile_id
             });
@@ -305,7 +301,6 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
 
     //get profile from db
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
             profile_id: profile_id,
             account_id: req.user?.account_id
@@ -329,7 +324,6 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
 
         //Update the profile
         try {
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await db.none('UPDATE Profile SET preferences = $<updatedPreferences> WHERE profile_id = $<profile_id>', {
                 updatedPreferences: updatedPreferences,
                 profile_id: profile_id
@@ -390,21 +384,89 @@ export const postSendInvitation = async (req: Request & { user?: User }, res: Re
 };
 
 export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, res: Response): Promise<void> => {
-    
-        const newBillingDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    
-            //Update the billing date
-            try {
-                await db.none('UPDATE account_subscription SET billing_date = $<newBillingDate> WHERE account_id = $<account_id>', {
-                    newBillingDate: newBillingDate,
+
+    const newBillingDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    //Update the billing date
+    try {
+        await db.none('UPDATE account_subscription SET billing_date = $<newBillingDate> WHERE account_id = $<account_id>', {
+            newBillingDate: newBillingDate,
+            account_id: req.user?.account_id
+        });
+
+        responder(res, 200, 'message', 'Billing date updated successfully');
+        return;
+    } catch (err) {
+        console.log(err)
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+};
+
+export const patchUpdatePaymentMethod = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
+    const subscriptionId: number = req.body.subscription_id!;
+    const paymentMethod: string = req.body.payment_method!;
+
+    const possiblePaymentMethods: string[] = ['PayPal', 'Visa', 'MasterCard', 'Apple Pay', 'Google Pay', 'iDEAL'];
+
+    //validate input values
+    if (validateStrings([paymentMethod]) === false || possiblePaymentMethods.includes(paymentMethod) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    //validate input values
+    if (validateNumbers([subscriptionId]) === false || subscriptionId > 3) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    //Update the payment method
+    try {
+        await db.tx(async (t) => {
+
+            //Get the price of the subscription
+            const price = await t.one('SELECT subscription_price FROM subscription WHERE subscription_id = $<subscriptionId>', {
+                subscriptionId: subscriptionId
+            });
+
+            //Adjust the price if the user was invited
+            if (req.user!.invited === true && subscriptionId > 0) {
+                price.subscription_price = price.subscription_price - 2;
+            }
+
+            //Update the account subscription table
+            await t.none('UPDATE account_subscription SET payment_method = $<paymentMethod>, subscription_id = $<subscription_id>, price = $<price>  WHERE account_id = $<account_id>', {
+                paymentMethod: paymentMethod,
+                subscription_id: subscriptionId,
+                account_id: req.user?.account_id,
+                price: price.subscription_price
+            });
+
+            //Update the active subscription in the account table if not free account
+            if (req.user!.active_subscription === false && subscriptionId > 0) {
+                await t.none('UPDATE account SET active_subscription = $<active_subscription> WHERE account_id = $<account_id>', {
+                    active_subscription: true,
                     account_id: req.user?.account_id
                 });
-    
-                responder(res, 200, 'message', 'Billing date updated successfully');
-                return;
-            } catch (err) {
-                console.log(err)
-                responder(res, 500, 'error', 'Internal Server Error');
-                return;
-            }
+            };
+
+            //Update the active subscription in the account table if free account
+            if (req.user!.active_subscription === true && subscriptionId === 0) {
+                await t.none('UPDATE account SET active_subscription = $<active_subscription> WHERE account_id = $<account_id>', {
+                    active_subscription: false,
+                    account_id: req.user?.account_id
+                });
+            };
+
+        });
+        responder(res, 200, 'message', 'Payment method updated successfully');
+        return;
+
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    };
+
 };
