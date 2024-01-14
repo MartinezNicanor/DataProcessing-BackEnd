@@ -106,7 +106,6 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
     //check if user has been registered with email
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
@@ -135,8 +134,6 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 };
 
 export const patchPasswordResetSubmit = async (req: Request, res: Response): Promise<void> => {
-    //TODO DOUBLECHECK LOGIC HERE TO SEE IF I MISSED ANY EDGE CASES
-
     const token: string = req.params.token!
     const password: string = req.body.password!
 
@@ -162,7 +159,6 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
 
         try {
             const hashedPassword: string = await bcrypt.hash(password, 10);
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await db.none("UPDATE Account SET password = $<password>, blocked = $<blocked>, log_in_attempt_count = $<log_in_attempt_count>  WHERE email = $<email>", {
                 password: hashedPassword,
                 blocked: false,
@@ -185,4 +181,51 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
             return;
         }
     }
+}
+
+export const getPasswordResetVerification = async (req: Request, res: Response): Promise<void> => {
+
+    const token: string = req.params.token!
+
+    if (validateStrings([token]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    try {
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+        const userData = decodedToken.data;
+        const email = userData['email'];
+
+        if (userData['purpose'] !== 'password-reset') {
+            responder(res, 401, 'error', 'Incorrect JWT token');
+            return;
+        }
+
+        try {
+            const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
+                email: email
+            });
+
+            if (!userObject) {
+                responder(res, 401, 'error', 'User is not registered')
+                return;
+            }
+
+            responder(res, 200, 'message', 'User is verified to reset password')
+            return;
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal server error')
+            return;
+        }
+
+    } catch (err: any) {
+        if (err.name === 'TokenExpiredError') {
+            responder(res, 401, 'error', 'Expired Link');
+        } else {
+            responder(res, 400, 'err', 'JWT malformed')
+            return;
+        }
+    }
+
 }

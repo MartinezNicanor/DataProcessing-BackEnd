@@ -104,6 +104,7 @@ CREATE TABLE Account_subscription(
     subscription_id INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
     price FLOAT NOT NULL,
+    billing_date DATE NOT NULL,
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (subscription_id) REFERENCES Subscription (subscription_id) ON DELETE NO ACTION ON UPDATE CASCADE
 );

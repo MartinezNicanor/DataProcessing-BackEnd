@@ -34,7 +34,6 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
     try {
         //Check how many profiles does a user already have
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const numberOfProfiles = await db.oneOrNone('SELECT COUNT(*) FROM Profile WHERE account_id = ${account_id}', {
             account_id: req.user?.account_id,
         });
@@ -55,7 +54,6 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
         }
 
         //Insert the user information into DB
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         try {
             await db.none('INSERT INTO profile (account_id, profile_name, profile_image, age, language) VALUES ($<account_id>, $<profileName>, $<profile_image>, $<age>, $<language>)', {
                 account_id: req.user?.account_id,
@@ -83,7 +81,7 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
 export const getUserProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
     const profile_id: string = req.params.profileId!;
-    
+
     //Check if profile id is a valid string number
     if (isNaN(Number(profile_id))) {
         responder(res, 400, 'error', 'Profile ID must be a number');
@@ -97,8 +95,7 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
     }
 
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
-        const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id}', {
+        const profile = await db.oneOrNone('SELECT * FROM profile WHERE profile_id = ${profile_id}', {
             profile_id: profile_id
         });
 
@@ -107,12 +104,14 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
             return;
         }
 
+        console.log('profile.account_id', profile.account_id, 'req.user?.account_id', req.user?.account_id);
+
         if (profile.account_id !== req.user?.account_id) {
             responder(res, 401, 'error', 'Unauthorized');
             return;
         }
 
-        responder(res, 200,'data', profile);
+        responder(res, 200, 'data', profile);
         return;
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
@@ -121,7 +120,7 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
 };
 
 
-export const patchUpdateProfile = async (req: Request & {user?: User}, res: Response): Promise<void> => {
+export const patchUpdateProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     //profile interface to organize the data
     interface Profile {
@@ -164,7 +163,7 @@ export const patchUpdateProfile = async (req: Request & {user?: User}, res: Resp
         return;
     }
 
-        //get profile from db
+    //get profile from db
     try {
         //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const profile: Profile | null = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
@@ -185,7 +184,7 @@ export const patchUpdateProfile = async (req: Request & {user?: User}, res: Resp
         } else {
             profile_image = profile.profile_image;
         }
-        
+
         if (profileName === '') {
             profileName = profile.profile_name;
         }
@@ -210,10 +209,10 @@ export const patchUpdateProfile = async (req: Request & {user?: User}, res: Resp
             });
 
             responder(res, 200, 'message', 'Profile updated successfull');
-    } catch (err) {
-        responder(res, 500, 'error', 'Internal Server Error');
-        return;
-    }
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal Server Error');
+            return;
+        }
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
@@ -299,7 +298,7 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
     }
 
     //validate input values crazy array validation
-    if (validateArrayStrings([movie, series, genres]) === false  || (validateArrayStrings([viewing_class]) === false) && viewing_class.every(item => allowedViewingClasses.includes(item.trim())) === false) {
+    if (validateArrayStrings([movie, series, genres]) === false || (validateArrayStrings([viewing_class]) === false) && viewing_class.every(item => allowedViewingClasses.includes(item.trim())) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     }
@@ -349,19 +348,18 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
     }
 };
 
-export const postSendInvitation = async (req: Request & {user? : User}, res: Response): Promise<void> => {
-    
+export const postSendInvitation = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
     const email: string = req.body.email!;
 
     //validate input values
-   if (!isValidEmail(email)) {
+    if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email', `err`, `${email} is not a valid email`);
         return;
     }
 
     //Check if the email is already registered
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const account = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
@@ -373,11 +371,11 @@ export const postSendInvitation = async (req: Request & {user? : User}, res: Res
         }
 
         //Generate the token
-        const token: string = jwtTokenGenerator('24h','invitingEmail',req.user?.email!, 'invitedEmail', email, 'purpose', 'invite')
+        const token: string = jwtTokenGenerator('24h', 'invitingEmail', req.user?.email!, 'invitedEmail', email, 'purpose', 'invite')
 
         //Send the email
         try {
-            const info =  await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
+            const info = await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
             console.log('Email sent: ', info.response);
             responder(res, 200, 'message', 'Invitation sent successfully');
             return;
@@ -389,4 +387,24 @@ export const postSendInvitation = async (req: Request & {user? : User}, res: Res
         responder(res, 500, 'error', 'Internal Server Error');
         return;
     }
+};
+
+export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+    
+        const newBillingDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    
+            //Update the billing date
+            try {
+                await db.none('UPDATE account_subscription SET billing_date = $<newBillingDate> WHERE account_id = $<account_id>', {
+                    newBillingDate: newBillingDate,
+                    account_id: req.user?.account_id
+                });
+    
+                responder(res, 200, 'message', 'Billing date updated successfully');
+                return;
+            } catch (err) {
+                console.log(err)
+                responder(res, 500, 'error', 'Internal Server Error');
+                return;
+            }
 };

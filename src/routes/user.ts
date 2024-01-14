@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from "express";
-import { postCreateNewProfile, patchUpdateProfile, deleteDeleteProfile, getUserProfile, patchUpdateProfilePreferences, postSendInvitation} from '../controller/user';
+import { postCreateNewProfile, patchUpdateProfile, deleteDeleteProfile, getUserProfile, patchUpdateProfilePreferences, postSendInvitation, patchUpdateNewBillingDate } from '../controller/user';
 import authenticateToken from "../middleware/authenticate";
 import upload from "../config/multerConfig";
 
@@ -27,6 +27,8 @@ router.delete('/current/profiles/:profileId', (req: Request, res: Response) => d
 router.patch('/current/profiles/:profileId/preferences', (req: Request, res: Response) => patchUpdateProfilePreferences(req, res));
 
 router.post('/current/sendInvite', (req: Request, res: Response) => postSendInvitation(req, res)); 
+
+router.patch('/current/newBillingDate', (req: Request, res: Response) => patchUpdateNewBillingDate(req, res));
 
 
 export = router;

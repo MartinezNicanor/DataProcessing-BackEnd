@@ -26,8 +26,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   console.log(email, password, firstName, lastName, street, zipCode, countryId, age, paymentMethod, subscriptionId, language)
 
-
-  //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
   if (language.includes(",")) {
     const preferredLanguage: string[] = language.split(',')
     language = preferredLanguage[0].trim();
@@ -67,7 +65,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   //Check if email is already in DB
   try {
-    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
     const user: null | string = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
       email: email
     });
@@ -78,7 +75,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
     }
 
   } catch (err) {
-    console.log(1);
     responder(res, 500, 'error', 'Internal Server Error')
     return;
   }
@@ -87,6 +83,9 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
+
+    let activeSubscription: boolean = subscriptionId === 0 ? true : false;  // if subscription id is 0 then active subscription is false
+
     await db.tx(async (t) => {
       // Create account
       await t.none(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
@@ -97,7 +96,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
         password: hashedPassword,
         first_name: firstName,
         last_name: lastName,
-        active_subscription: false,
+        active_subscription: activeSubscription,
         blocked: false,
         verified: false,
         street: street,
@@ -119,12 +118,13 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
       });
 
       // Create account subscription
-      await t.none(`INSERT INTO Account_subscription (account_id, subscription_id, payment_method, price) 
-      VALUES ($<account_id>, $<subscription_id>, $<payment_method>, $<price>)`, {
+      await t.none(`INSERT INTO Account_subscription (account_id, subscription_id, payment_method, price, billing_date) 
+      VALUES ($<account_id>, $<subscription_id>, $<payment_method>, $<price>, $<billing_date>)`, {
         account_id: account_id['account_id'],
         subscription_id: subscriptionId,
         payment_method: paymentMethod,
-        price: subscriptionPrice.subscription_price
+        price: subscriptionPrice.subscription_price,
+        billing_date: new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)) // Adding a week in milliseconds
       });
 
       // Create profile
@@ -219,19 +219,26 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
               email: invitedObject.invited_email
             });
 
-            // 3. Update inviting user's subscription to have price - 2 (also check if inviting user is invited to prevent infinite money glitch)
-            if (invitingEmailObject['invited'] === false) {
-              await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
-                decrementAmount: 2.0,
-                account_id: invitingEmailObject['account_id']
-              });
-            }
+            console.log(invitingEmailObject['active_subscription'], invitingEmailObject['active_subscription'])
+
+            // if inviting user and invited user both have active subscriptions
+            if (invitingEmailObject['active_subscription'] === true && invitedEmailObject['active_subscription'] === true) {
+              // if inviting user has not invited anyone yet
+              if (invitingEmailObject['invited'] === false) {
+                // decrement inviting user's subscription price by 2
+                await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
+                  decrementAmount: 2.0,
+                  account_id: invitingEmailObject['account_id']
+                });
+              }
+            
 
             // 4. Update invited user's subscription to have price - 2 (Invite can not be sent to an account already in the db therefore no need to check if invited user is invited)
-            await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
-              decrementAmount: 2.0,
-              account_id: invitedEmailObject['account_id']
-            });
+              await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
+                decrementAmount: 2.0,
+                account_id: invitedEmailObject['account_id']
+              });
+            }
 
             // 5. Delete invite object from db
             await t.none('DELETE FROM Invite WHERE invited_email = $<email>', {
