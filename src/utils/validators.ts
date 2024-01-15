@@ -69,6 +69,29 @@ function isValidEmail(email: string): Boolean {
         }
     }
     return true;
+  }
+
+  function isValidTimeInterval(timeInterval: string) {
+        const [hours, minutes, seconds] = timeInterval.split(':').map(Number);
+        if (
+            Number.isInteger(hours) && hours >= 0 && hours <= 23 &&
+            Number.isInteger(minutes) && minutes >= 0 && minutes <= 59 &&
+            Number.isInteger(seconds) && seconds >= 0 && seconds <= 59
+        ) {
+            return true;
+        } else {
+            return false;
+        }
+
 }
 
-  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings};
+// Example usage
+const timeInterval = "10:59:77";
+if (isValidTimeInterval(timeInterval)) {
+    console.log(`The time interval ${timeInterval} is valid.`);
+} else {
+    console.error(`Error: The time interval ${timeInterval} is not valid.`);
+}
+
+
+  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval};

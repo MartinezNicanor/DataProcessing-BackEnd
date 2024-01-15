@@ -129,8 +129,9 @@ CREATE TABLE Available_languages (
 CREATE TABLE Watch_history (
     watch_history_id SERIAL PRIMARY KEY,
     profile_id INT NOT NULL,
-    finished BOOLEAN NOT NULL DEFAULT false,
     watch_date TIMESTAMP NOT NULL DEFAULT current_timestamp,
+    event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('Start','End')),
+    finished BOOLEAN NOT NULL DEFAULT false,
     FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE
 );
 

@@ -2,16 +2,15 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import responder from '../utils/responder';
 import { User } from '../types/user';
-import { validateNumbers } from '../utils/validators';
+import { isValidTimeInterval, validateNumbers } from '../utils/validators';
 
 
-export const postWatchMovie = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+export const postStartWatchMovie = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     const movieId: string = req.params.movieId!;
     const profileId: string = req.params.profileId!;
-    const pauseTime: number = req.body.pausTime!;
-    const finished: boolean = req.body.finished! ? req.body.finished! : false;
 
+    // TODO: Check if startTime is not longer than movie duration and  if the movieObject is finished, then start the movie from beggining        if its within 3 minitues of movie length then set the finished to true
 
     if (!req.params.movieId || !req.params.profileId) {
         responder(res, 400, 'error', 'ID parameters are required');
@@ -23,7 +22,8 @@ export const postWatchMovie = async (req: Request & {user? : User}, res: Respons
         return;
     }
 
-    if (validateNumbers([+movieId, +profileId, pauseTime])) {
+    if (!validateNumbers([(Number(movieId)), (Number(profileId))])) {
+        console.log(movieId, profileId, typeof (movieId), typeof (profileId), Number(movieId), Number(profileId))
         responder(res, 400, 'error', 'Invalid Request');
         return;
     }
@@ -35,11 +35,12 @@ export const postWatchMovie = async (req: Request & {user? : User}, res: Respons
             accountId: req.user!.account_id
         });
 
-        if ( profileObject === null ) {
+        if (profileObject === null) {
             responder(res, 401, 'error', 'Unauthorized');
             return;
         }
     } catch (err) {
+        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -50,8 +51,195 @@ export const postWatchMovie = async (req: Request & {user? : User}, res: Respons
             movieId: movieId
         });
 
-        if ( movieObject === null ) {
-            responder(res, 404, 'error', 'Movie not found');
+        if (movieObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    // Check if the latest movie watch history has event_type "End" in watch_history
+    try {
+        const watchHistoryObject = await db.oneOrNone('SELECT * FROM watch_history WHERE profile_id = $<profileId> ORDER BY watch_date DESC LIMIT 1', {
+            profileId: profileId
+        });
+
+        if (watchHistoryObject !== null && watchHistoryObject.event_type === 'Start') {
+            responder(res, 400, 'error', 'Previous movie watch history has not ended yet');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+    }
+
+
+    //Create new movie watch entry
+
+    //TODO:  If the movieObject is finished, then start the movie from beggining, IF a movie history exists then  grab the start time from the last movie history entry and start the movie from there otherwise start time = 00:00:00
+    //TODO RN add realistic movie durations in dummy data -> UPDATE DB -> write code to test it
+    try {
+        await db.tx(async t => {
+
+            const previousWatchHistoryObject = await t.oneOrNone('SELECT * FROM watch_history WHERE profile_id = $<profileId> AND event_type = $<eventType> ORDER BY watch_date DESC LIMIT 1',
+                {
+                    profileId: profileId,
+                    eventType: 'End'
+                });
+
+            const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
+                profileId: profileId
+            });
+
+            //Check if previous watch history exists or if the movie is finished last time
+            if (previousWatchHistoryObject === null || previousWatchHistoryObject.finished === true) {
+                //If doesnt exist then start the movie from beggining
+
+                const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                    profileId: profileId,
+                    eventType: 'Start',
+                    finished: false
+                })
+
+                await t.none('INSERT INTO movie_watch_history (movie_id,  pause_time, language_settings, watch_history_id) VALUES ($<movieId>, $<pauseTime>, $<languageSettings>, $<watchHistoryId>)', {
+                    movieId: movieId,
+                    pauseTime: '00:00:00',
+                    languageSettings: languageSettings.language,
+                    watchHistoryId: watchHisoryObject.watch_history_id,
+                });
+            } else {
+                //If exists then start the movie from the last movie history entry
+                const startTime = await t.one('SELECT pause_time FROM movie_watch_history WHERE watch_history_id = ${watchHistoryId}', {
+                    watchHistoryId: previousWatchHistoryObject.watch_history_id
+
+                });
+
+                const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                    profileId: profileId,
+                    eventType: 'Start',
+                    finished: false
+                })
+
+                await t.none('INSERT INTO movie_watch_history (movie_id,  pause_time, language_settings, watch_history_id) VALUES ($<movieId>, $<pauseTime>, $<languageSettings>, $<watchHistoryId>)', {
+                    movieId: movieId,
+                    pauseTime: startTime.pause_time,
+                    languageSettings: languageSettings.language,
+                    watchHistoryId: watchHisoryObject.watch_history_id,
+                });
+            }
+        });
+        responder(res, 201, 'success', 'Movie watch history created');
+        return;
+    } catch (err) {
+        console.log(err);
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+};
+
+export const postEndWatchMovie = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
+    const movieId: string = req.params.movieId!;
+    const profileId: string = req.params.profileId!;
+    const endTime: string = req.body.endTime!;
+
+    if (!req.params.movieId || !req.params.profileId) {
+        responder(res, 400, 'error', 'ID parameters are required');
+        return;
+    }
+
+    if (isNaN(Number(movieId)) || isNaN(Number(profileId))) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    if (!validateNumbers([(Number(movieId)), (Number(profileId))])) {
+        console.log(movieId, profileId, typeof (movieId), typeof (profileId), Number(movieId), Number(profileId))
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    if (!isValidTimeInterval(endTime)) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    // Check if profile exists and if it matches the user
+    try {
+        const profileObject = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profileId} AND account_id = ${accountId}', {
+            profileId: profileId,
+            accountId: req.user!.account_id
+        });
+
+        if (profileObject === null) {
+            responder(res, 401, 'error', 'Unauthorized');
+            return;
+        }
+    } catch (err) {
+        console.log(err);
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    // Check if movie exists
+    try {
+        const movieObject = await db.oneOrNone('SELECT * FROM Movie WHERE movie_id = ${movieId}', {
+            movieId: movieId
+        });
+
+        if (movieObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        console.log(err);
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    // Check if the latest movie watch history has event_type "Start" in watch_history
+    try {
+        const watchHistoryObject = await db.oneOrNone('SELECT * FROM watch_history WHERE profile_id = $<profileId> ORDER BY watch_date DESC LIMIT 1', {
+            profileId: profileId
+        });
+
+        try {
+            const movieWatchHistoryObject = await db.oneOrNone('SELECT * FROM movie_watch_history WHERE watch_history_id = $<watchHistoryId>', {
+                watchHistoryId: watchHistoryObject.watch_history_id
+            });
+
+            if (watchHistoryObject !== null && watchHistoryObject.event_type === 'End') {
+                responder(res, 400, 'error', 'Previous movie watch history has already ended');
+                return;
+            };
+
+            //Check if the movie watch history matches the movie so you wont be able to start a new movie and end a different movie
+            if (watchHistoryObject !== null && movieWatchHistoryObject.movie_id !== Number(movieId)) {
+                console.log(movieWatchHistoryObject.movie_id, movieId, watchHistoryObject !== null, movieWatchHistoryObject.movie_id !== movieId);
+                responder(res, 400, 'error', 'Previous movie watch history does not match the movie');
+                return;
+            };
+
+        } catch (err) {
+            console.log(err);
+            responder(res, 500, 'error', 'Internal server error');
+            return;
+        }
+    } catch (err) {
+        console.log(err);
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    };
+
+    //Check if endTime is not longer than movie duration
+    try {
+        const movieDuration = await db.one('SELECT duration FROM movie WHERE movie_id = ${movieId}', {
+            movieId: movieId
+        });
+
+        if (endTime > movieDuration.duration) {
+            responder(res, 400, 'error', 'End time is longer than movie duration');
             return;
         }
     } catch (err) {
@@ -62,49 +250,162 @@ export const postWatchMovie = async (req: Request & {user? : User}, res: Respons
     //Create new movie watch entry
     try {
         await db.tx(async t => {
+            const movieObject = await t.one('SELECT *, TO_CHAR(duration, \'HH24:MI:SS\') AS formatted_duration FROM movie WHERE movie_id = $1', [movieId]);
+
+            // Access the formatted duration from the result
+            const formattedDuration = movieObject.formatted_duration;
+
+            const finished: boolean = endTime === movieObject.formatted_duration ? true : false;
 
             const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
                 profileId: profileId
             });
 
-            await t.one('INSERT INTO watch_history (profile_id, finished) VALUES ($<profileId>, $<finished>) RETURNING watch_history_id',{
+            const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
                 profileId: profileId,
+                eventType: 'End',
                 finished: finished
-            })
+            });
 
-            await t.none('INSERT INTO movie_watch_history (movie_id,  pause_time, language_settings, movie_watch_date) VALUES ($<movieId>, $<pauseTime>, $<languageSettings>, $<movieWatchDate>)', {
+            await t.none('INSERT INTO movie_watch_history (movie_id,  pause_time, language_settings, watch_history_id) VALUES ($<movieId>, $<pauseTime>, $<languageSettings>, $<watchHistoryId>)', {
                 movieId: movieId,
-                pauseTime: pauseTime,
+                pauseTime: endTime,
                 languageSettings: languageSettings.language,
-                movieWatchDate: new Date(Date.now())
+                watchHistoryId: watchHisoryObject.watch_history_id,
             });
         });
         responder(res, 201, 'success', 'Movie watch history created');
+        return;
+    } catch (err) {
+        console.log(err);
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+};
+
+export const getWatchMovie = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
+    const movieId: string = req.params.movieId!;
+
+    //Make sure parameters are sumbitted
+    if (!req.params.movieId) {
+        responder(res, 400, 'error', 'ID parameters are required');
+        return;
+    }
+
+    //Make sure parameters are numbers
+    if (isNaN(Number(movieId))) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    //Make sure parameters are valid numbers
+    if (!validateNumbers([(Number(movieId))])) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    //Check if movie exists
+    try {
+        const movieObject = await db.oneOrNone('SELECT * FROM Movie WHERE movie_id = ${movieId}', {
+            movieId: movieId
+        });
+
+        if (movieObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
     } catch (err) {
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
-    
-}
 
-export const getWatchMovie = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+    try {
+
+        const movieObject = await db.oneOrNone('SELECT * FROM Movie WHERE movie_id = ${movieId}', {
+            movieId: movieId
+        });
+
+        responder(res, 200, 'success', movieObject);
+        return;
+
+    } catch(err) {
+        console.log(err);
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
 };
 
-export const getWatchMovieSubtitle = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+export const getWatchMovieSubtitle = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
+    const movieId: string = req.params.movieId!;
+
+    //Make sure parameters are sumbitted
+    if (!req.params.movieId) {
+        responder(res, 400, 'error', 'ID parameters are required');
+        return;
+    }
+
+    //Make sure parameters are numbers
+    if (isNaN(Number(movieId))) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    //Make sure parameters are valid numbers
+    if (!validateNumbers([(Number(movieId))])) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    //Check if movie exists
+    try {
+        const movieObject = await db.oneOrNone('SELECT * FROM Movie WHERE movie_id = ${movieId}', {
+            movieId: movieId
+        });
+
+        if (movieObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    try {
+
+        const movieObject = await db.oneOrNone('SELECT * FROM Movie WHERE movie_id = ${movieId}', {
+            movieId: movieId
+        });
+
+        //TODO: Fetch subtitiles from database and send them back here
+
+        responder(res, 200, 'success', movieObject);
+        return;
+
+    } catch(err) {
+        console.log(err);
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
 };
 
-export const postWatchSeries = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+export const postStartWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 };
 
-export const getWatchSeries = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+export const postEndWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 };
 
-export const getWatchSeriesSubtitle = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+export const getWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 };
 
-export const getProfileWatchHistory = async (req: Request & {user? : User}, res: Response): Promise<void> => {
-
+export const getWatchSeriesSubtitle = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 };
 
-export const getProfilePersonalOffer = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+export const getProfileWatchHistory = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+};
+
+export const getProfilePersonalOffer = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 };
