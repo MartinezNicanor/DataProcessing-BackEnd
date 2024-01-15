@@ -101,3 +101,10 @@ export const getWatchSeries = async (req: Request & {user? : User}, res: Respons
 
 export const getWatchSeriesSubtitle = async (req: Request & {user? : User}, res: Response): Promise<void> => {
 };
+
+export const getProfileWatchHistory = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+
+};
+
+export const getProfilePersonalOffer = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+};

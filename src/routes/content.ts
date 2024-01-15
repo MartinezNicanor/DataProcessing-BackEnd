@@ -3,7 +3,7 @@ import authenticateToken from '../middleware/authenticate';
 const router: Router = express.Router();
 
 // Import controllers
-import { postWatchMovie, getWatchMovie, getWatchMovieSubtitle, postWatchSeries, getWatchSeries, getWatchSeriesSubtitle } from '../controller/content';
+import { postWatchMovie, getWatchMovie, getWatchMovieSubtitle, postWatchSeries, getWatchSeries, getWatchSeriesSubtitle, getProfileWatchHistory, getProfilePersonalOffer } from '../controller/content';
 
 router.use(authenticateToken);
 
@@ -20,4 +20,7 @@ router.get('/seriesId/:seriesId', (req: Request, res: Response) => getWatchSerie
 
 router.get('/seriesId/:seriesId/subtitle', (req: Request, res: Response) => getWatchSeriesSubtitle(req, res));
 
+router.get('/profile/:profileId/watch-history', (req: Request, res: Response) => getProfileWatchHistory(req, res));
+
+router.get('/profile/:profileId/presonal-offer', (req: Request, res: Response) => getProfilePersonalOffer(req, res));
 export = router;
