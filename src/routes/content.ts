@@ -3,12 +3,14 @@ import authenticateToken from '../middleware/authenticate';
 const router: Router = express.Router();
 
 // Import controllers
-import { getMovie, getSeries, patchUpdateMovie, patchUpdateSeries, getPersonalizedContent, getViewingHistory } from '../controller/content';
+import { postWatchMovie, getWatchMovie,  getSeries, patchUpdateMovie, patchUpdateSeries, getPersonalizedContent, getViewingHistory } from '../controller/content';
 
 router.use(authenticateToken);
 
 // API routes
-router.get('/movie/:movieId', (req: Request, res: Response) => getMovie(req, res));
+router.post('/movie/:profileId/:movieId', (req: Request, res: Response) => postWatchMovie(req, res));
+
+router.get('/movie/:profileId/:movieId', (req: Request, res: Response) => getWatchMovie(req, res));
 
 router.get('/series/:seriesId', (req: Request, res: Response) => getSeries(req, res));
 

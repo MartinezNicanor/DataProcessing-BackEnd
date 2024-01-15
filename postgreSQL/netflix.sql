@@ -104,6 +104,7 @@ CREATE TABLE Account_subscription(
     subscription_id INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
     price FLOAT NOT NULL,
+    billing_date DATE NOT NULL,
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (subscription_id) REFERENCES Subscription (subscription_id) ON DELETE NO ACTION ON UPDATE CASCADE
 );
@@ -129,6 +130,7 @@ CREATE TABLE Watch_history (
     watch_history_id SERIAL PRIMARY KEY,
     profile_id INT NOT NULL,
     finished BOOLEAN NOT NULL DEFAULT false,
+    watch_date TIMESTAMP NOT NULL DEFAULT current_timestamp,
     FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE
 );
 
@@ -137,9 +139,7 @@ CREATE TABLE Movie_watch_history (
     movie_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    language_settings JSON NOT NULL DEFAULT '{
-        "language_settings": []
-    }',
+    language_settings VARCHAR(255) NOT NULL DEFAULT 'en',
     FOREIGN KEY (movie_id) REFERENCES Movie (movie_id) ON DELETE CASCADE,
     FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
 );
@@ -150,9 +150,7 @@ CREATE TABLE Series_watch_history (
     episode_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    language_settings JSON NOT NULL DEFAULT '{
-        "language_settings": []
-    }',
+    language_settings VARCHAR(255) NOT NULL DEFAULT 'en',
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
     FOREIGN KEY (episode_id) REFERENCES Episode (episode_id) ON DELETE CASCADE,
     FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE

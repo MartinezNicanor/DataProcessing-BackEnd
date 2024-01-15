@@ -9,6 +9,7 @@ router.post('/', (req: Request, res: Response) => postRegisterUser(req, res));
 
 router.get('/verification/:token', (req: Request, res: Response) => getVerifyUser(req, res))
 
-router.get('/invitation/:token', (req: Request, res: Response) => getInvitedUser(req, res) )
+router.get('/invitation/:token', (req: Request, res: Response) => getInvitedUser(req, res))
+
 
 export = router;

@@ -16,22 +16,52 @@
 ```
 #Do NOT inlude inequality signs
 
-POSTGRES_USER=<YOUR USERNAME>
-POSTGRES_PASSWORD=<YOUR PASSWORD>
-POSTGRES_DB=db
-
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=password
+POSTGRES_HOST=localhost
+POSTGRES_DB=netflix
+POSTGRES_PORT=5432
+JWT_SECRET=secret
+MAILING_SERVICE_ADDRESS = nhlstenden.work@gmail.com
+MAILING_SERVICE_APP_PASSWORD = ieykdgjbgcitkdpr
+EMAIL_API_KEY = 9fffb9f220754101ab765d427898c3c7 !!!!! UPDATE TO THE NEW ONE BEFORE SUUBMISSION
 PORT = 3000
 ``` 
 4. Open a termial in VSCode
-5. Run the following code and wait or it to download
+
+5. Run the following code to download all the necessary packages
 
 ```
-docker build -t node .
+npm run i
 ```
-6. Run the following and wait for it to download and it should run everything automatically
+6. Build the project (necessary for the creation of a dist folder from which our server runs from)
 ```
-docker compose up
+npm run build
 ```
+
+7. From here on out, the server can be run with either
+```
+npm start
+``` 
+
+or 
+
+```
+npm run dev
+```
+
+8. In order to have the database set up, postgres will need to be downloaded and ran locally. 
+Make sure that the port is set to 5432, and that a user named: "admin" with the password: "postgres" is created.
+
+9. A copy of the database can be found in :
+    - /root
+        - /postgreSQL
+            - /netflix.sql
+
+10. After creating the database, dummy data can be found in
+    - /root
+        - /postgreSQL
+            - /dummy-data.sql
 
 ## Commands to use
 
