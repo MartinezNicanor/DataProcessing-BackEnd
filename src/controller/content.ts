@@ -87,15 +87,17 @@ export const postWatchMovie = async (req: Request & {user? : User}, res: Respons
     
 }
 
-export const getSeries = async (req: Request & {user? : User}, res: Response): Promise<void> => {};
+export const getWatchMovie = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+};
 
-export const patchUpdateMovie = async (req: Request & {user? : User}, res: Response): Promise<void> => {};
+export const getWatchMovieSubtitle = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+};
 
-export const patchUpdateSeries = async (req: Request & {user? : User}, res: Response): Promise<void> => {};
+export const postWatchSeries = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+};
 
-export const getPersonalizedContent = async (req: Request & {user? : User}, res: Response): Promise<void> => {};
+export const getWatchSeries = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+};
 
-export const getViewingHistory = async (req: Request & {user? : User}, res: Response): Promise<void> => {};
-
-export const getWatchMovie = async (req: Request & {user? : User}, res: Response): Promise<void> => {};
-
+export const getWatchSeriesSubtitle = async (req: Request & {user? : User}, res: Response): Promise<void> => {
+};

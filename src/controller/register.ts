@@ -259,7 +259,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
           verified: true,
           email: email
         })
-        responder(res, 200, 'message', 'Account verified successfully')
+        responder(res, 200, 'message', 'Account verified successfully');
         return;
       } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error')

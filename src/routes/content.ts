@@ -3,23 +3,21 @@ import authenticateToken from '../middleware/authenticate';
 const router: Router = express.Router();
 
 // Import controllers
-import { postWatchMovie, getWatchMovie,  getSeries, patchUpdateMovie, patchUpdateSeries, getPersonalizedContent, getViewingHistory } from '../controller/content';
+import { postWatchMovie, getWatchMovie, getWatchMovieSubtitle, postWatchSeries, getWatchSeries, getWatchSeriesSubtitle } from '../controller/content';
 
 router.use(authenticateToken);
 
 // API routes
-router.post('/movie/:profileId/:movieId', (req: Request, res: Response) => postWatchMovie(req, res));
+router.post('/movie/:movieId/profile/:profileId', (req: Request, res: Response) => postWatchMovie(req, res));
 
-router.get('/movie/:profileId/:movieId', (req: Request, res: Response) => getWatchMovie(req, res));
+router.get('/movie/:movieId', (req: Request, res: Response) => getWatchMovie(req, res));
 
-router.get('/series/:seriesId', (req: Request, res: Response) => getSeries(req, res));
+router.get('/movie/:movieId/subtitle', (req: Request, res: Response) => getWatchMovieSubtitle(req, res));
 
-router.patch('/movie/:movieId', (req: Request, res: Response) => patchUpdateMovie(req, res));
+router.post('/seriesId/:seriesId/profile/:profileId', (req: Request, res: Response) => postWatchSeries(req, res));
 
-router.patch('/series/:seriesId', (req: Request, res: Response) => patchUpdateSeries(req, res));
+router.get('/seriesId/:seriesId', (req: Request, res: Response) => getWatchSeries(req, res));
 
-router.get('/presonalized-content', (req: Request, res: Response) => getPersonalizedContent(req, res));
-
-router.get('/viewing-history', (req: Request, res: Response) => getViewingHistory(req, res));
+router.get('/seriesId/:seriesId/subtitle', (req: Request, res: Response) => getWatchSeriesSubtitle(req, res));
 
 export = router;
