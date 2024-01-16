@@ -7,7 +7,7 @@ CREATE TABLE Country (
 
 CREATE TABLE Episode (
     episode_id SERIAL PRIMARY KEY,
-    title VARCHAR (255) UNIQUE,
+    title VARCHAR (255),
     duration INTERVAL DEFAULT '00:00:00',
     season_id INT NOT NULL
 );
@@ -62,9 +62,9 @@ CREATE TABLE Profile (
         "series": [],
         "genre": [],
         "min_age": [],
-        "viewing_class": [],
-        "language_settings": []
+        "viewing_class": []
     }',
+    language VARCHAR(25) NOT NULL DEFAULT 'en',
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
 );
 
@@ -132,6 +132,8 @@ CREATE TABLE Available_languages (
 CREATE TABLE Watch_history (
     watch_history_id SERIAL PRIMARY KEY,
     profile_id INT NOT NULL,
+    watch_date TIMESTAMP NOT NULL DEFAULT current_timestamp,
+    event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('Start','End')),
     finished BOOLEAN NOT NULL DEFAULT false,
     FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE
 );
@@ -141,7 +143,7 @@ CREATE TABLE Movie_watch_history (
     movie_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    language_settings VARCHAR(25),
+    language_settings VARCHAR(255) NOT NULL DEFAULT 'en',
     FOREIGN KEY (movie_id) REFERENCES Movie (movie_id) ON DELETE CASCADE,
     FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
 );
@@ -177,33 +179,6 @@ CREATE TABLE available_shows_country (
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
     FOREIGN KEY (movie_id) REFERENCES  Movie (movie_id) ON DELETE CASCADE
 );
-
--- Triggers:
-
--- Create the check_unique_account_limit function
-CREATE OR REPLACE FUNCTION check_unique_account_limit()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF (
-        SELECT COUNT(*)
-        FROM Profile
-        WHERE account_id = NEW.account_id
-    ) > 4 THEN
-        RAISE EXCEPTION 'More than 4 profiles for the same account are not allowed';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Add the trigger to enforce the unique_account_limit constraint separately
-CREATE TRIGGER unique_account_limit_trigger
-BEFORE INSERT OR UPDATE
-ON Profile
-FOR EACH ROW
-EXECUTE FUNCTION check_unique_account_limit();
-
--- Stored procedures:
-
 
 -- Views:
 
