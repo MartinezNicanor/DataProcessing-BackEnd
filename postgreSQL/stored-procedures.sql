@@ -64,10 +64,11 @@ RETURNS void AS $$
 -- output personal watchlist
 
 -- controller/user.ts stored procedures
-CREATE OR REPLACE FUNCTION XY( foo text)
+
+-- Insert the user information into DB
+CREATE OR REPLACE FUNCTION newAccount(account_id text, profile_name text, profile_image text, age int, language text)
 RETURNS void AS $$
     BEGIN
-        SELECT * FROM account WHERE account_id = foo;
+        INSERT INTO profile (account_id, profile_name, profile_image, age, language) VALUES (account_id, profile_name, profile_image, age, language);
     END
     $$ LANGUAGE plpgsql;
-
