@@ -1,6 +1,4 @@
-
-
--- 3.0 creating script for tables in Netflx
+-- 3.1 creating script for tables in Netflx
 
 CREATE TABLE Country (
     country_id SERIAL PRIMARY KEY,
@@ -46,6 +44,9 @@ CREATE TABLE Movie (
     title VARCHAR (255) NOT NULL UNIQUE,
     duration INTERVAL DEFAULT '00:00:00',
     genre_id INT NOT NULL,
+    available_qualities JSON NOT NULL DEFAULT '{
+        "available_qualities": []
+    }',
     FOREIGN KEY (genre_id) REFERENCES Genre (genre_id) ON DELETE NO ACTION
 );
 
@@ -71,6 +72,9 @@ CREATE TABLE Series (
     series_id SERIAL PRIMARY KEY,
     title VARCHAR (255) NOT NULL,
     genre_id INT NOT NULL,
+    available_qualities JSON NOT NULL DEFAULT '{
+        "available_qualities": []
+    }',
     FOREIGN KEY (genre_id) REFERENCES Genre (genre_id) ON DELETE NO ACTION
 );
 
@@ -90,8 +94,6 @@ CREATE TABLE Season (
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE
 );
 
-
-
 CREATE TABLE Subscription (
     subscription_id SERIAL PRIMARY KEY,
     title VARCHAR (255) NOT NULL,
@@ -105,6 +107,7 @@ CREATE TABLE Account_subscription(
     subscription_id INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
     price FLOAT NOT NULL,
+    billing_date TIMESTAMP NOT NULL,
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (subscription_id) REFERENCES Subscription (subscription_id) ON DELETE NO ACTION ON UPDATE CASCADE
 );
@@ -138,9 +141,7 @@ CREATE TABLE Movie_watch_history (
     movie_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    language_settings JSON NOT NULL DEFAULT '{
-        "language_settings": []
-    }',
+    language_settings VARCHAR(25),
     FOREIGN KEY (movie_id) REFERENCES Movie (movie_id) ON DELETE CASCADE,
     FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
 );
@@ -151,9 +152,7 @@ CREATE TABLE Series_watch_history (
     episode_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    language_settings JSON NOT NULL DEFAULT '{
-        "language_settings": []
-    }',
+    language_settings VARCHAR(25),
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
     FOREIGN KEY (episode_id) REFERENCES Episode (episode_id) ON DELETE CASCADE,
     FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
