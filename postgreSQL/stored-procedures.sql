@@ -60,6 +60,20 @@ RETURNS void AS $$
 
     END $$ LANGUAGE plpgsql;
 
+-- function for trigger: check for profile account limit is 4
+CREATE OR REPLACE FUNCTION check_unique_account_limit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (
+        SELECT COUNT(*)
+        FROM Profile
+        WHERE account_id = NEW.account_id
+    ) > 4 THEN
+        RAISE EXCEPTION 'More than 4 profiles for the same account are not allowed';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- output personal watchlist
 
