@@ -147,6 +147,7 @@ CREATE TABLE Movie_watch_history (
 CREATE TABLE Series_watch_history (
     series_watch_history_id SERIAL PRIMARY KEY,
     series_id INT NOT NULL,
+    season_id INT NOT NULL,
     episode_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',

@@ -146,75 +146,80 @@ INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (34, 
 INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (35, 9, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (36, 9, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (37, 11, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (38, 11, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (39, 11, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (40, 11, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (37, 10, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (38, 10, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (39, 10, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (40, 10, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (41, 12, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (42, 12, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (43, 12, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (44, 12, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (41, 11, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (42, 11, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (43, 11, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (44, 11, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (45, 13, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (46, 13, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (47, 13, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (48, 13, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (45, 12, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (46, 12, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (47, 12, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (48, 12, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (49, 14, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (50, 14, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (51, 14, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (52, 14, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (49, 13, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (50, 13, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (51, 13, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (52, 13, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (53, 15, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (54, 15, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (55, 15, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (56, 15, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (53, 14, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (54, 14, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (55, 14, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (56, 14, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (57, 16, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (58, 16, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (59, 16, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (60, 16, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (57, 15, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (58, 15, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (59, 15, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (60, 15, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (61, 17, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (62, 17, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (63, 17, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (64, 17, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (61, 16, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (62, 16, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (63, 16, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (64, 16, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (65, 18, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (66, 18, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (67, 18, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (68, 18, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (65, 17, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (66, 17, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (67, 17, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (68, 17, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (69, 19, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (70, 19, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (71, 19, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (72, 19, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (69, 18, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (70, 18, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (71, 18, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (72, 18, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (73, 20, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (74, 20, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (75, 20, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (76, 20, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (73, 19, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (74, 19, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (75, 19, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (76, 19, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (77, 21, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (78, 21, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (79, 21, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (80, 21, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (77, 20, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (78, 20, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (79, 20, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (80, 20, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (81, 22, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (82, 22, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (83, 22, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (84, 22, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (81, 21, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (82, 21, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (83, 21, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (84, 21, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (85, 23, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (86, 23, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (87, 23, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (88, 23, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (85, 22, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (86, 22, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (87, 22, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (88, 22, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (89, 24, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (90, 24, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (91, 24, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
-INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (92, 24, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (89, 23, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (90, 23, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (91, 23, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (92, 23, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (93, 24, 'Episode 1', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (94, 24, 'Episode 2', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (95, 24, 'Episode 3', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
+INSERT INTO public.episode (episode_id, season_id, title, duration) VALUES (96, 24, 'Episode 4', '0 years 0 mons 0 days 0 hours 30 mins 0.0 secs');
 
 INSERT INTO public.subtitle (subtitle_id, subtitle_location) VALUES (9, 'location/nl_sub.txt');
 INSERT INTO public.subtitle (subtitle_id, subtitle_location) VALUES (8, 'location/pl_sub.txt');

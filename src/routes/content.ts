@@ -8,17 +8,17 @@ import { postStartWatchMovie, postEndWatchMovie, getWatchMovie, getWatchMovieSub
 router.use(authenticateToken);
 
 // API routes
-router.post('/profile/:profileId/watch-hisotry/start', (req: Request, res: Response) => postStartWatchMovie(req, res));
+router.post('/profile/:profileId/watch-hisotry/movie/start', (req: Request, res: Response) => postStartWatchMovie(req, res));
 
-router.post('/profile/:profileId/watch-history/end', (req: Request, res: Response) => postEndWatchMovie(req, res));
+router.post('/profile/:profileId/watch-history/movie/end', (req: Request, res: Response) => postEndWatchMovie(req, res));
 
 router.get('/movie/:movieId', (req: Request, res: Response) => getWatchMovie(req, res));
 
 router.get('/movie/:movieId/subtitle', (req: Request, res: Response) => getWatchMovieSubtitle(req, res));
 
-router.post('/seriesId/:seriesId/profile/:profileId', (req: Request, res: Response) => postStartWatchSeries(req, res));
+router.post('/profile/:profileId/watch-history/series/start', (req: Request, res: Response) => postStartWatchSeries(req, res));
 
-router.post('/seriesId/:seriesId/profile/:profileId', (req: Request, res: Response) => postEndWatchSeries(req, res));
+router.post('/profile/:profileId/watch-history/series/end', (req: Request, res: Response) => postEndWatchSeries(req, res));
 
 router.get('/seriesId/:seriesId', (req: Request, res: Response) => getWatchSeries(req, res));
 
