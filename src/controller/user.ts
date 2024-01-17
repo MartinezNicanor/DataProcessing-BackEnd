@@ -111,14 +111,13 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
             return;
         }
 
-        responder(res, 200, 'data', profile);
+        responder(res, 200, 'profile', profile);
         return;
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
     }
 };
-
 
 export const patchUpdateProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 

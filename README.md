@@ -54,7 +54,7 @@ npm run dev
 Make sure that the port is set to 5432, and that a user named: "admin" with the password: "postgres" is created.
 
 9. A copy of the database can be found in :
-    - /root
+    - /root 
         - /postgreSQL
             - /netflix.sql
 

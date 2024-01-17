@@ -9,7 +9,7 @@ CREATE TABLE Country (
 
 CREATE TABLE Episode (
     episode_id SERIAL PRIMARY KEY,
-    title VARCHAR (255) UNIQUE,
+    title VARCHAR (255) ,
     duration INTERVAL DEFAULT '00:00:00',
     season_id INT NOT NULL
 );
@@ -66,6 +66,7 @@ CREATE TABLE Profile (
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
 );
 
+
 CREATE TABLE Series (
     series_id SERIAL PRIMARY KEY,
     title VARCHAR (255) NOT NULL,
@@ -88,8 +89,6 @@ CREATE TABLE Season (
     title VARCHAR (255),
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE
 );
-
-
 
 CREATE TABLE Subscription (
     subscription_id SERIAL PRIMARY KEY,
@@ -129,8 +128,9 @@ CREATE TABLE Available_languages (
 CREATE TABLE Watch_history (
     watch_history_id SERIAL PRIMARY KEY,
     profile_id INT NOT NULL,
-    finished BOOLEAN NOT NULL DEFAULT false,
     watch_date TIMESTAMP NOT NULL DEFAULT current_timestamp,
+    event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('Start','End')),
+    finished BOOLEAN NOT NULL DEFAULT false,
     FOREIGN KEY (profile_id) REFERENCES Profile (profile_id) ON DELETE CASCADE
 );
 
@@ -147,6 +147,7 @@ CREATE TABLE Movie_watch_history (
 CREATE TABLE Series_watch_history (
     series_watch_history_id SERIAL PRIMARY KEY,
     series_id INT NOT NULL,
+    season_id INT NOT NULL,
     episode_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
