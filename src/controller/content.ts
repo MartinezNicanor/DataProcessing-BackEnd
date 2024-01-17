@@ -548,6 +548,40 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
             return;
         }
 
+        //if watch history entry does not exist then create a new one
+        if (watchHistoryObject === null) {
+            try {
+                await db.tx(async t => {
+
+                    const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
+                        profileId: profileId
+                    });
+
+                    const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                        profileId: profileId,
+                        eventType: 'Start',
+                        finished: false
+                    })
+
+                    await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
+                        seriesId: seriesId,
+                        seasonId: seasonId,
+                        episodeId: episodeId,
+                        pauseTime: '00:00:00',
+                        watchHistoryId: watchHisoryObject.watch_history_id,
+                        languageSettings: languageSettings.language
+                    });
+                });
+
+                responder(res, 201, 'success', 'Series watch history created');
+                return;
+            } catch (err) {
+                console.log(err);
+                responder(res, 500, 'error', 'Internal server error');
+                return;
+            }
+        }
+
         //if there is watch history entry check if it has not finished then start the series from the same timestamp
         if (watchHistoryObject !== null && watchHistoryObject.finished === false) {
 
@@ -556,7 +590,7 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
 
                     const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
                         profileId: profileId
-                    });        
+                    });
 
                     const startTime = await t.one('SELECT pause_time FROM series_watch_history WHERE watch_history_id = ${watchHistoryId}', {
                         watchHistoryId: watchHistoryObject.watch_history_id
@@ -587,13 +621,13 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
             }
         }
 
-        if(watchHistoryObject !== null && watchHistoryObject.finished === true){
+        if (watchHistoryObject !== null && watchHistoryObject.finished === true) {
             try {
                 await db.tx(async t => {
 
                     const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
                         profileId: profileId
-                    }); 
+                    });
 
                     const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
                         profileId: profileId,
@@ -620,8 +654,6 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
             }
         }
 
-
-
     } catch (err) {
         console.log(err);
         responder(res, 500, 'error', 'Internal server error');
@@ -629,6 +661,7 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
     }
 
     responder(res, 200, 'success', 'Series watch history created');
+    return;
 
 };
 
