@@ -151,11 +151,13 @@ CREATE TABLE Movie_watch_history (
 CREATE TABLE Series_watch_history (
     series_watch_history_id SERIAL PRIMARY KEY,
     series_id INT NOT NULL,
+    season_id INT NOT NULL,
     episode_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
     language_settings VARCHAR(25),
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
+    FOREIGN KEY (season_id) REFERENCES Season (season_id) ON DELETE CASCADE,
     FOREIGN KEY (episode_id) REFERENCES Episode (episode_id) ON DELETE CASCADE,
     FOREIGN KEY (watch_history_id) REFERENCES Watch_history (watch_history_id) ON DELETE CASCADE
 );
