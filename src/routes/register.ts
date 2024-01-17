@@ -12,4 +12,6 @@ router.get('/verification/:token', (req: Request, res: Response) => getVerifyUse
 router.get('/invitation/:token', (req: Request, res: Response) => getInvitedUser(req, res))
 
 
+
+
 export = router;

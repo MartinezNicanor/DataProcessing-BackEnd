@@ -85,13 +85,14 @@ function isValidEmail(email: string): Boolean {
 
 }
 
-// Example usage
-const timeInterval = "10:59:77";
-if (isValidTimeInterval(timeInterval)) {
-    console.log(`The time interval ${timeInterval} is valid.`);
-} else {
-    console.error(`Error: The time interval ${timeInterval} is not valid.`);
+function languageValidator(language: string): boolean {
+  const acceptedLanguages = ['English', 'French', 'Spanish', 'German', 'Italian', 'Russian', 'Hungarian', 'Dutch', 'Romanian', 'Polish'];
+
+  if (acceptedLanguages.includes(language)) {
+      return true;
+  }
+  return false;
 }
 
 
-  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval};
+  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval, languageValidator};

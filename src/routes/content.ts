@@ -8,9 +8,9 @@ import { postStartWatchMovie, postEndWatchMovie, getWatchMovie, getWatchMovieSub
 router.use(authenticateToken);
 
 // API routes
-router.post('/movie/:movieId/profile/:profileId/start', (req: Request, res: Response) => postStartWatchMovie(req, res));
+router.post('/profile/:profileId/watch-hisotry/start', (req: Request, res: Response) => postStartWatchMovie(req, res));
 
-router.post('/movie/:movieId/profile/:profileId/end', (req: Request, res: Response) => postEndWatchMovie(req, res));
+router.post('/profile/:profileId/watch-history/end', (req: Request, res: Response) => postEndWatchMovie(req, res));
 
 router.get('/movie/:movieId', (req: Request, res: Response) => getWatchMovie(req, res));
 

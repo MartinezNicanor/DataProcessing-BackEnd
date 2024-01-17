@@ -9,7 +9,7 @@ CREATE TABLE Country (
 
 CREATE TABLE Episode (
     episode_id SERIAL PRIMARY KEY,
-    title VARCHAR (255) UNIQUE,
+    title VARCHAR (255) ,
     duration INTERVAL DEFAULT '00:00:00',
     season_id INT NOT NULL
 );
@@ -66,6 +66,7 @@ CREATE TABLE Profile (
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE
 );
 
+
 CREATE TABLE Series (
     series_id SERIAL PRIMARY KEY,
     title VARCHAR (255) NOT NULL,
@@ -88,8 +89,6 @@ CREATE TABLE Season (
     title VARCHAR (255),
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE
 );
-
-
 
 CREATE TABLE Subscription (
     subscription_id SERIAL PRIMARY KEY,

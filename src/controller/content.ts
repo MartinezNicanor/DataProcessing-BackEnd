@@ -1,18 +1,19 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import { db } from '../db';
 import responder from '../utils/responder';
 import { User } from '../types/user';
-import { isValidTimeInterval, validateNumbers } from '../utils/validators';
+import { isValidTimeInterval, validateNumbers, languageValidator } from '../utils/validators';
 
 
 export const postStartWatchMovie = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
-    const movieId: string = req.params.movieId!;
+    const movieId: number = req.body.movieId!;
     const profileId: string = req.params.profileId!;
 
     // TODO: Check if startTime is not longer than movie duration and  if the movieObject is finished, then start the movie from beggining        if its within 3 minitues of movie length then set the finished to true
 
-    if (!req.params.movieId || !req.params.profileId) {
+    if (!req.body.movieId || !req.params.profileId) {
+        console.log(req.body.movieId, req.params.profileId);
         responder(res, 400, 'error', 'ID parameters are required');
         return;
     }
@@ -140,11 +141,11 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
 
 export const postEndWatchMovie = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
-    const movieId: string = req.params.movieId!;
+    const movieId: string = req.body.movieId!;
     const profileId: string = req.params.profileId!;
     const endTime: string = req.body.endTime!;
 
-    if (!req.params.movieId || !req.params.profileId) {
+    if (!req.body.movieId || !req.params.profileId) {
         responder(res, 400, 'error', 'ID parameters are required');
         return;
     }
@@ -329,7 +330,7 @@ export const getWatchMovie = async (req: Request & { user?: User }, res: Respons
         responder(res, 200, 'success', movieObject);
         return;
 
-    } catch(err) {
+    } catch (err) {
         console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
@@ -339,6 +340,14 @@ export const getWatchMovie = async (req: Request & { user?: User }, res: Respons
 export const getWatchMovieSubtitle = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     const movieId: string = req.params.movieId!;
+    const subtitleLanguage: string = req.query.language! ? req.query.language!.toString() : 'English'; //if user does not specify language then default to English
+
+
+    //Check if language is valid
+    if (!languageValidator(subtitleLanguage)) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
 
     //Make sure parameters are sumbitted
     if (!req.params.movieId) {
@@ -379,12 +388,30 @@ export const getWatchMovieSubtitle = async (req: Request & { user?: User }, res:
             movieId: movieId
         });
 
-        //TODO: Fetch subtitiles from database and send them back here
+        await db.tx(async (t) => {
+        });
 
-        responder(res, 200, 'success', movieObject);
-        return;
+        try {
+            const subtitleObject = await db.one(
+                `SELECT s.subtitle_location
+                     FROM available_languages AS al
+                     JOIN subtitle AS s ON s.subtitle_id = al.subtitle_id
+                     JOIN languages AS l ON l.language_id = al.language_id
+                     WHERE l.language_name = $<languageName> AND al.movie_id = $<movieId>
+                     `, {
+                languageName: subtitleLanguage,
+                movieId: movieId
+            })
 
-    } catch(err) {
+            responder(res, 200, 'movieObject', movieObject, 'subtitleLocation', subtitleObject.subtitle_location);
+            return;
+
+        } catch (err) {
+            console.log(err);
+            responder(res, 500, 'error', 'Internal server error');
+            return;
+        }
+    } catch (err) {
         console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
