@@ -1,4 +1,4 @@
--- netlfix database stored procedures
+-- netflix database stored procedures
 
 -- revokes all right to a given user
 CREATE OR REPLACE FUNCTION revoke_all_privileges(user_group text)
@@ -20,7 +20,7 @@ RETURNS void AS $$
         country_id int;
         genre_id int;
         language_id int;
-    BEGIN -- We chose SERIALIZABLE
+    BEGIN -- We chose SERIALIZABLE because ...
         SET TRANSACTION ISOLATION LEVEL SERIALIZABLE; -- https://mkdev.me/posts/transaction-isolation-levels-with-postgresql-as-an-example
 
         -- Getters

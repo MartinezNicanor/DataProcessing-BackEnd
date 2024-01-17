@@ -22,18 +22,18 @@ CREATE TABLE Languages (
     language_name VARCHAR (255) NOT NULL UNIQUE
 );
 
-CREATE TABLE Account (
+CREATE TABLE Account ( -- not all fields are mandatory because the "admins" also are registered in this table
     account_id SERIAL PRIMARY KEY,
     email VARCHAR (255) NOT NULL UNIQUE,
     password VARCHAR (255) NOT NULL,
     first_name VARCHAR (255) NOT NULL,
     last_name VARCHAR (255) NOT NULL,
-    active_subscription BOOLEAN NOT NULL DEFAULT false,
-    blocked BOOLEAN NOT NULL,
-    verified BOOLEAN NOT NULL,
-    street VARCHAR (255) NOT NULL,
-    zip_code VARCHAR (10) NOT NULL,
-    country_id INT NOT NULL,
+    active_subscription BOOLEAN DEFAULT false,
+    blocked BOOLEAN,
+    verified BOOLEAN,
+    street VARCHAR (255),
+    zip_code VARCHAR (10),
+    country_id INT,
     log_in_attempt_count INT,
     invited BOOLEAN,
     user_type VARCHAR(50) NOT NULL CHECK (user_type IN ('User','Junior','Medior','Senior'))

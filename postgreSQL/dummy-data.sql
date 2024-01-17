@@ -1,5 +1,11 @@
 -- Dummy data
 
+-- junior, medior and senior accounts into account table
+INSERT INTO account (email, password, first_name, last_name, user_type)
+VALUES ('junior@netflix.com', 'PASSWORD', 'junior', 'junior', 'Junior'),
+       ('medior@netflix.com', 'PASSWORD', 'medior', 'medior', 'Medior'),
+       ('senior@netflix.com', 'PASSWORD', 'senior', 'senior', 'Senior');
+
 -- subscription table
 INSERT INTO Subscription(title, description, subscription_price)
 VALUES
