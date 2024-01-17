@@ -81,14 +81,29 @@ $$ LANGUAGE plpgsql;
 
 -- output personal watchlist
 CREATE OR REPLACE FUNCTION get_personal_watchlist(profile int)
-RETURNS SETOF record AS $$
+RETURNS TABLE
+    (
+        profile_name varchar(50),
+        watch_history_id int,
+        watch_date TIMESTAMP,
+        event_type varchar(50),
+        finished boolean,
+        movie_title varchar(255),
+        pause_time INTERVAL,
+        series_title VARCHAR(255),
+        season_title VARCHAR(255),
+        episode_title VARCHAR(255),
+        episode_count bigint,
+        series_duration interval
+    )AS $$
     BEGIN
-        SELECT p.profile_name, wh.watch_history_id, wh.watch_date, wh.event_type, wh.finished,(SELECT title FROM movie WHERE movie.movie_id = mwh.movie_id) AS Movie, mwh.pause_time, (SELECT title FROM series s WHERE s.title = swh.series_id) AS Series, (SELECT title FROM season s WHERE s.season_id = swh.season_id) AS Season, (SELECT title FROM episode e WHERE e.episode_id = swh.episode_id) AS Episode, swh.pause_time
-        FROM watch_history wh
-        INNER JOIN profile p ON wh.profile_id = p.profile_id
-        LEFT JOIN movie_watch_history mwh ON wh.watch_history_id = mwh.watch_history_id
-        LEFT JOIN series_watch_history swh ON wh.watch_history_id = swh.watch_history_id
-        WHERE wh.profile_id = profile;
+        RETURN QUERY
+            SELECT p.profile_name AS Profile, wh.watch_history_id, wh.watch_date AS Watched_on, wh.event_type AS Event, wh.finished,(SELECT title FROM movie WHERE movie.movie_id = mwh.movie_id) AS Movie, mwh.pause_time, (SELECT title FROM series s WHERE s.title = swh.series_id) AS Series, (SELECT title FROM season s WHERE s.season_id = swh.season_id) AS Season, (SELECT title FROM episode e WHERE e.episode_id = swh.episode_id) AS Episode, swh.pause_time
+            FROM watch_history wh
+            INNER JOIN profile p ON wh.profile_id = p.profile_id
+            LEFT JOIN movie_watch_history mwh ON wh.watch_history_id = mwh.watch_history_id
+            LEFT JOIN series_watch_history swh ON wh.watch_history_id = swh.watch_history_id
+            WHERE wh.profile_id = profile;
     END;
 $$ LANGUAGE plpgsql;
 
@@ -104,7 +119,7 @@ RETURNS TABLE
     ) AS $$
     BEGIN
         RETURN QUERY
-            SELECT p.profile_name, (SELECT title FROM movie WHERE movie.movie_id = mwh.movie_id) AS Movie, (count(mwh.movie_id)) AS Movie_count, (SELECT duration FROM movie WHERE movie.movie_id = mwh.movie_id) AS Movie_duration
+            SELECT p.profile_name AS Profile, (SELECT title FROM movie WHERE movie.movie_id = mwh.movie_id) AS Movie, (count(mwh.movie_id)) AS Movie_count, (SELECT duration FROM movie WHERE movie.movie_id = mwh.movie_id) AS Movie_duration
             FROM watch_history wh
             INNER JOIN profile p ON wh.profile_id = p.profile_id
             LEFT JOIN movie_watch_history mwh ON wh.watch_history_id = mwh.watch_history_id
@@ -124,22 +139,54 @@ RETURNS TABLE
         episode_count bigint,
         series_duration interval
     ) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT p.profile_name, s.title AS series_title, sea.title AS season_title, e.title AS episode_title, COUNT(e.episode_id) AS episode_count, SUM(e.duration) AS series_total_duration
-    FROM watch_history wh
-    INNER JOIN profile p ON wh.profile_id = p.profile_id
-    LEFT JOIN series_watch_history swh ON wh.watch_history_id = swh.watch_history_id
-    LEFT JOIN episode e ON swh.episode_id = e.episode_id
-    LEFT JOIN season sea ON e.season_id = sea.season_id
-    LEFT JOIN series s ON sea.series_id = s.series_id
-    WHERE wh.profile_id = profile AND
-          s.series_id IN (SELECT DISTINCT swh.series_id FROM series_watch_history swh WHERE swh.season_id IN (SELECT DISTINCT season_id FROM series_watch_history) AND swh.episode_id IN (SELECT DISTINCT episode_id FROM series_watch_history))
-    GROUP BY p.profile_name, s.title, sea.title, e.title;
-
-END
+    BEGIN
+        RETURN QUERY
+            SELECT p.profile_name AS Profile, s.title AS Series, sea.title AS Season, e.title AS Episode, COUNT(e.episode_id) AS episode_count, SUM(e.duration) AS series_total_duration
+            FROM watch_history wh
+            INNER JOIN profile p ON wh.profile_id = p.profile_id
+            LEFT JOIN series_watch_history swh ON wh.watch_history_id = swh.watch_history_id
+            LEFT JOIN episode e ON swh.episode_id = e.episode_id
+            LEFT JOIN season sea ON e.season_id = sea.season_id
+            LEFT JOIN series s ON sea.series_id = s.series_id
+            WHERE wh.profile_id = profile AND
+                  s.series_id IN (SELECT DISTINCT swh.series_id FROM series_watch_history swh WHERE swh.season_id IN (SELECT DISTINCT season_id FROM series_watch_history) AND swh.episode_id IN (SELECT DISTINCT episode_id FROM series_watch_history))
+            GROUP BY p.profile_name, s.title, sea.title, e.title;
+    END
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_movie_suggestion(profile int)
+RETURNS TABLE
+    (
+        movie_title VARCHAR(255),
+        movie_genre varchar(255),
+        movie_duration interval
+    ) AS $$
+     DECLARE
+        genre int;
+    BEGIN
+        -- retrieving the most watched genre
+        genre = (
+            SELECT g.genre_id
+            FROM watch_history wh
+            INNER JOIN profile p ON wh.profile_id = p.profile_id
+            LEFT JOIN movie_watch_history mwh ON wh.watch_history_id = mwh.watch_history_id
+            LEFT JOIN movie m ON mwh.movie_id = m.movie_id
+            LEFT JOIN genre g ON m.genre_id = g.genre_id
+            WHERE wh.profile_id = profile
+            GROUP BY g.genre_id
+            ORDER BY COUNT(*) DESC
+            LIMIT 1);
+        RETURN QUERY
+            SELECT m.title AS Movie, g.title AS Genre, m.duration AS Movie_duration
+            FROM movie m
+            INNER JOIN genre g ON m.genre_id = g.genre_id
+            WHERE g.genre_id = genre
+            GROUP BY m.title, g.title, m.duration
+            LIMIT 5;
+    END
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM get_movie_suggestion(1);
 
 -- Insert the user information into DB
 CREATE OR REPLACE FUNCTION newAccount(account_id text, profile_name text, profile_image text, age int, language text)
