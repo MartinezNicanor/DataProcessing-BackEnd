@@ -5,13 +5,6 @@ CREATE TABLE Country (
     country_name VARCHAR (255)
 );
 
-CREATE TABLE Episode (
-    episode_id SERIAL PRIMARY KEY,
-    title VARCHAR (255),
-    duration INTERVAL DEFAULT '00:00:00',
-    season_id INT NOT NULL
-);
-
 CREATE TABLE Genre (
     genre_id SERIAL PRIMARY KEY,
     title VARCHAR (255) NOT NULL UNIQUE
@@ -92,6 +85,14 @@ CREATE TABLE Season (
     series_id INT NOT NULL,
     title VARCHAR (255),
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE
+);
+
+CREATE TABLE Episode (
+    episode_id SERIAL PRIMARY KEY,
+    title VARCHAR (255),
+    duration INTERVAL DEFAULT '00:00:00',
+    season_id INT NOT NULL,
+    FOREIGN KEY (season_id) REFERENCES season (season_id)
 );
 
 CREATE TABLE Subscription (

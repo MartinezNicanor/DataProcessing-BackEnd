@@ -59,9 +59,9 @@ VALUES
 -- season table
 INSERT INTO Season (series_id, title)
 VALUES
-    (0,'Tommy Shelby'),
-    (0,'Arthur Shelby'),
-    (0,'Polly Gray'),
+    (1,'Tommy Shelby'),
+    (2,'Arthur Shelby'),
+    (3,'Polly Gray'),
     (2,'He has pants'),
     (2,'He has pants part 2');
 
@@ -110,3 +110,4 @@ VALUES
     (2,3.8),
     (3,1.5),
     (3,1.8);
+
