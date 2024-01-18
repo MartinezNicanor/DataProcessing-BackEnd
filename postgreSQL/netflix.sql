@@ -292,3 +292,14 @@ CREATE VIEW junior AS (
     GROUP BY
         A.email, A.email, A.active_subscription
 );
+
+-- table to log account table activities
+CREATE TABLE account_log (
+    log_id SERIAL PRIMARY KEY,
+    table_name VARCHAR(50) NOT NULL DEFAULT 'Account',
+    operation_type VARCHAR(50) NOT NULL,
+    account_email VARCHAR(255) NOT NULL,
+    change_timestamp TIMESTAMP DEFAULT current_time,
+    old_data JSONB,
+    new_data JSONB
+);

@@ -64,19 +64,58 @@ RETURNS void AS $$
     END
 $$ LANGUAGE plpgsql;
 
--- function for trigger: check for profile account limit is 4
+-- function for triggers:
+-- check for profile account limit is 4
 CREATE OR REPLACE FUNCTION check_unique_account_limit()
 RETURNS TRIGGER AS $$
     BEGIN
         IF (
             SELECT COUNT(*)
-            FROM profile
+            FROM Profile
             WHERE account_id = NEW.account_id
         ) > 4 THEN
             RAISE EXCEPTION 'More than 4 profiles for the same account are not allowed';
         END IF;
         RETURN NEW;
-    END
+    END;
+$$ LANGUAGE plpgsql;
+
+-- checks for login attempts and blocks if exceed
+CREATE OR REPLACE FUNCTION monitor_login_attempts()
+RETURNS TRIGGER AS $$
+    BEGIN
+        IF NEW.log_in_attempt_count > 3 THEN
+            UPDATE Account
+            SET blocked = true
+            WHERE account_id = NEW.account_id;
+        END IF;
+        RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+-- stores account table changes in account_log
+CREATE OR REPLACE FUNCTION log_account_changes()
+RETURNS TRIGGER AS $$
+    DECLARE
+        old_data JSONB;
+        new_data JSONB;
+    BEGIN
+        IF TG_OP = 'UPDATE' THEN
+            old_data = to_jsonb(OLD);
+            new_data = to_jsonb(NEW);
+        ELSIF TG_OP = 'INSERT' THEN
+            old_data = null;
+            new_data = to_jsonb(NEW);
+            ELSIF TG_OP = 'DELETE' THEN
+            old_data = to_jsonb(OLD);
+            new_data = null;
+        END IF;
+
+        INSERT INTO account_log (table_name, operation_type, user_email, old_data, new_data)
+        VALUES (TG_TABLE_NAME, TG_OP, current_user, old_data, new_data);
+
+        RETURN NEW;
+    END;
 $$ LANGUAGE plpgsql;
 
 -- output personal watchlist
