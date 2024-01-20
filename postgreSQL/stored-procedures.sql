@@ -23,7 +23,7 @@ RETURNS void AS $$
         language_id int;
         movie_id int;
         subtitle_id int;
-    BEGIN -- We chose SERIALIZABLE because ...
+    BEGIN -- We chose SERIALIZABLE because the transactions are depend on each other results.
         SET TRANSACTION ISOLATION LEVEL SERIALIZABLE; -- https://mkdev.me/posts/transaction-isolation-levels-with-postgresql-as-an-example
 
         -- Getters
@@ -225,10 +225,25 @@ RETURNS TABLE
     END
 $$ LANGUAGE plpgsql;
 
-SELECT * FROM get_movie_suggestion(1);
+--- Select on country_statistics for top 10 revenue countries
+CREATE OR REPLACE FUNCTION top_revenue_countries()
+RETURNS TABLE
+    (
+        country_name VARCHAR,
+        subscription_revenue DECIMAL
+    ) AS $$
+    BEGIN
+        -- Fetch top 10 revenue countries
+        RETURN QUERY
+        SELECT cs.country_name, cs.total_subscription_revenue
+        FROM country_statistics cs
+        ORDER BY cs.total_subscription_revenue DESC
+        LIMIT 10;
+    END;
+$$ LANGUAGE plpgsql;
 
 -- Insert the user information into DB
-CREATE OR REPLACE FUNCTION newAccount(account_id text, profile_name text, profile_image text, age int, language text)
+CREATE OR REPLACE FUNCTION new_account(account_id text, profile_name text, profile_image text, age int, language text)
 RETURNS void AS $$
     BEGIN
         INSERT INTO profile (account_id, profile_name, profile_image, age, language) VALUES (account_id, profile_name, profile_image, age, language);

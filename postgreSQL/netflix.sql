@@ -1,4 +1,4 @@
--- 3.1 creating script for tables in Netflx
+-- 3.2 creating script for tables in Netflix
 
 CREATE TABLE Country (
     country_id SERIAL PRIMARY KEY,
@@ -219,21 +219,41 @@ CREATE VIEW country_information_show AS (
         C.country_id, S.title, G.title
 );
 
+--stored procedure that needs to be created before country_statistics view
+CREATE OR REPLACE FUNCTION calculate_country_total_revenue(country text)
+RETURNS DECIMAL AS $$
+    DECLARE
+        total_revenue DECIMAL := 0;
+    BEGIN
+        SELECT
+            COALESCE(SUM(AC.price), 0)
+        INTO
+            total_revenue
+        FROM
+            Account A
+        LEFT JOIN Country C ON A.country_id = C.country_id
+        LEFT JOIN Account_subscription AC ON AC.account_id = A.account_id
+        LEFT JOIN Subscription S ON AC.subscription_id = S.subscription_id
+        WHERE
+            C.country_id = (SELECT country_id FROM country c WHERE c.country_name = country);
+        RETURN total_revenue;
+    END;
+$$ LANGUAGE plpgsql;
+
+DROP VIEW country_statistics; -- DELETE ME
 CREATE VIEW country_statistics AS (
     SELECT
         C.country_name,
         COUNT(A.account_id) AS total_accounts,
         COUNT(CASE WHEN A.active_subscription = true THEN A.account_id END) AS active_subscriptions,
         COUNT(CASE WHEN A.active_subscription = false THEN A.account_id END) AS inactive_subscriptions,
-        (COUNT(CASE WHEN AC.payment_method = 'PayPal' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_paypal,
-        (COUNT(CASE WHEN AC.payment_method = 'Visa' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_visa,
-        (COUNT(CASE WHEN AC.payment_method = 'MasterCard' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_mastercard,
-        (COUNT(CASE WHEN AC.payment_method = 'Apple Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_apple_pay,
-        (COUNT(CASE WHEN AC.payment_method = 'Google Pay' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_google_pay,
-        (COUNT(CASE WHEN AC.payment_method = 'iDEAL' THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_ideal,
-        (COUNT(CASE WHEN S.title IS NOT NULL THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_subscribed_accounts,
-        (COUNT(CASE WHEN S.title IS NULL THEN A.account_id END)::DECIMAL / COUNT(A.account_id) * 100) AS percentage_of_unsubscribed_accounts,
-        SUM(S.subscription_price * CASE WHEN A.active_subscription THEN 1 ELSE 0 END) AS subscription_revenue -- not sensitiv to netlfix subscription discount,yet!
+        (COUNT(CASE WHEN AC.payment_method = 'PayPal' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_paypal,
+        (COUNT(CASE WHEN AC.payment_method = 'Visa' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_visa,
+        (COUNT(CASE WHEN AC.payment_method = 'MasterCard' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_mastercard,
+        (COUNT(CASE WHEN AC.payment_method = 'Apple Pay' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_apple_pay,
+        (COUNT(CASE WHEN AC.payment_method = 'Google Pay' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_google_pay,
+        (COUNT(CASE WHEN AC.payment_method = 'iDEAL' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_ideal,
+        COALESCE((SELECT calculate_country_total_revenue(C.country_name)), 0) AS total_subscription_revenue
     FROM
         Country C
     LEFT JOIN available_shows_country SC ON C.country_id = SC.country_id
@@ -299,7 +319,7 @@ CREATE TABLE account_log (
     table_name VARCHAR(50) NOT NULL DEFAULT 'Account',
     operation_type VARCHAR(50) NOT NULL,
     account_email VARCHAR(255) NOT NULL,
-    change_timestamp TIMESTAMP DEFAULT current_time,
+    change_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     old_data JSONB,
     new_data JSONB
 );
