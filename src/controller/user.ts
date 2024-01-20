@@ -382,6 +382,28 @@ export const postSendInvitation = async (req: Request & { user?: User }, res: Re
     }
 };
 
+
+export const deleteDeleteUserAccount = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+    //Delete the account
+    try {
+        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+        //transaction to delete the account and the profiles associated with the account
+        await db.tx(async (t) => {
+            await t.none('DELETE FROM Profile WHERE account_id = ${account_id}', {
+                account_id: req.user?.account_id
+            });
+            await t.none('DELETE FROM Account WHERE account_id = ${account_id}', {
+                account_id: req.user?.account_id
+            });
+        });
+        responder(res, 200, 'message', 'Account deleted successfully');
+        return;
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+};
+
 export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     const newBillingDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -469,3 +491,4 @@ export const patchUpdatePaymentMethod = async (req: Request & { user?: User }, r
     };
 
 };
+

@@ -194,6 +194,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         //Update inviting user to have invited = true
         //Delete invite object from db
         //Update invited user to have invited = true and verified = true
+        //Create a new subscription for the invited user with a free trial
         try {
           await db.tx(async (t) => {
             // grab inviting user's account id
@@ -244,6 +245,14 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
             await t.none('DELETE FROM Invite WHERE invited_email = $<email>', {
               email: invitedObject.invited_email
             });
+
+            await t.none('INSERT INTO Subscription (subscribed, type, price, date) VALUES ($<subscribed>, $<type>, $<price>, $<date>)', {
+              subscribed: false,
+              subscrition_id: 4,
+              price: 0,
+              date: new Date()
+            });
+
           });
           responder(res, 200, 'message', 'Account verified successfully');
           return;
@@ -380,5 +389,3 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
     return;
   }
 };
-
-// 
