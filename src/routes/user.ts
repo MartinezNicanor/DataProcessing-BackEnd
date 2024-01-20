@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from "express";
-import { postCreateNewProfile, patchUpdateProfile, deleteDeleteProfile, getUserProfile, patchUpdateProfilePreferences, postSendInvitation, deleteDeleteUserAccount} from '../controller/user';
+import { postCreateNewProfile, patchUpdateProfile, deleteDeleteProfile, getUserProfile, patchUpdateProfilePreferences, postSendInvitation, patchUpdateNewBillingDate, patchUpdatePaymentMethod, deleteDeleteUserAccount } from '../controller/user';
 import authenticateToken from "../middleware/authenticate";
 import upload from "../config/multerConfig";
 
@@ -26,10 +26,16 @@ router.patch('/current/profiles/:profileId', (req: Request, res: Response) => pa
 router.delete('/current/profiles/:profileId', (req: Request, res: Response) => deleteDeleteProfile(req, res));
 
 //Update the profile preferences 
-                                   //? Ask Jan if this is even necessary since getting/updating/deleting profiles are not described in the text
 router.patch('/current/profiles/:profileId/preferences', (req: Request, res: Response) => patchUpdateProfilePreferences(req, res));
 
+// Send invitation to a user
 router.post('/current/sendInvite', (req: Request, res: Response) => postSendInvitation(req, res)); 
+
+// Update the new billing date
+router.patch('/current/newBillingDate', (req: Request, res: Response) => patchUpdateNewBillingDate(req, res));
+
+// Update the payment method
+router.patch('/current/subscription', (req: Request, res: Response) => patchUpdatePaymentMethod(req, res));
 
 
 export = router;

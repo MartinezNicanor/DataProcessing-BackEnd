@@ -13,25 +13,41 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   const password: string = req.body.password!;
   const firstName: string = req.body.firstName!;
   const lastName: string = req.body.lastName!;
-
   const street: string = req.body.street!;
   const zipCode: string = req.body.zipCode!;
   const countryId: number = req.body.countryId!;
-  const userType: string = req.body.userType!;
+
+  let age: number = (req.body.age !== null && req.body.age >= 0) ? req.body.age : 0;
 
   const paymentMethod: string = req.body.paymentMethod!;
   const subscriptionId: number = req.body.subscriptionId!;
-  const price: number = req.body.price!;
 
-  //TODO: Payment method validation for specific types only visa, mastercard, paypal, etc.
+  let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en';
 
-  if (validateStrings([firstName, lastName, paymentMethod, street, zipCode, userType]) === false) {
+  console.log(email, password, firstName, lastName, street, zipCode, countryId, age, paymentMethod, subscriptionId, language)
+
+  if (language.includes(",")) {
+    const preferredLanguage: string[] = language.split(',')
+    language = preferredLanguage[0].trim();
+  }
+
+  if (validateStrings([firstName, lastName, paymentMethod, street, zipCode, language]) === false) {
     responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
+
+  if (paymentMethod !== 'Visa' && paymentMethod !== 'Mastercard' && paymentMethod !== 'Paypal' && paymentMethod !== 'Apple Pay' && paymentMethod !== 'Google Pay' && paymentMethod !== 'iDEAL') {
+    responder(res, 400, 'error', 'Invalid payment method');
     return;
   }
 
   if (validateNumbers([subscriptionId, countryId]) === false) {
     responder(res, 400, 'error', 'Invalid input values');
+    return;
+  }
+
+  if (subscriptionId > 3) {
+    responder(res, 400, 'error', 'Invalid subscription id');
     return;
   }
 
@@ -49,7 +65,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   //Check if email is already in DB
   try {
-    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
     const user: null | string = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
       email: email
     });
@@ -67,32 +82,63 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   //hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  //TODO: GO THROUGH SQL QUERY WITH JOEY WHEN HE IS DONE WITH DB
-  //TODO  MAKE SUBSCRIPTION ID AUTOMATICALLY Incremented and unique
   try {
-    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
-    await db.none(`INSERT INTO Account (email, password, first_name, last_name, payment_method,
-      subscription_id, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited) 
-      VALUES ($<email>, $<password>, $<first_name>, $<last_name>, $<payment_method>, $<subscription_id>,
-      $<blocked>, $<verified>, $<street>, $<zip_code>, $<country_id>, $<log_in_attempt_count>, $<invited>)`, {
-      email: email,
-      password: hashedPassword,
-      first_name: 'firstName',
-      last_name: 'lastName',
-      payment_method: 'Visa',
-      subscription_id: 4,
-      blocked: false,
-      verified: false,
-      street: 'street',
-      zip_code: 'zipCode',
-      country_id: 1,
-      log_in_attempt_count: 0,
-      invited: false,
-      accountCreated: new Date()
-    });
 
+    let activeSubscription: boolean = subscriptionId === 0 ? true : false;  // if subscription id is 0 then active subscription is false
+
+    await db.tx(async (t) => {
+      // Create account
+      await t.none(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+        VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+        $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+        $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>)`, {
+        email: email,
+        password: hashedPassword,
+        first_name: firstName,
+        last_name: lastName,
+        active_subscription: activeSubscription,
+        blocked: false,
+        verified: false,
+        street: street,
+        zip_code: zipCode,
+        country_id: countryId,
+        log_in_attempt_count: 0,
+        invited: false,
+        user_type: 'User'
+      });
+
+      // grab account id
+      const account_id = await t.one(`SELECT account_id FROM Account WHERE email = $<email>`, {
+        email: email
+      });
+
+      // grab subscription price
+      const subscriptionPrice = await t.one(`SELECT subscription_price FROM Subscription WHERE subscription_id = $<subscriptionId>`, {
+        subscriptionId: subscriptionId
+      });
+
+      // Create account subscription
+      await t.none(`INSERT INTO Account_subscription (account_id, subscription_id, payment_method, price, billing_date) 
+      VALUES ($<account_id>, $<subscription_id>, $<payment_method>, $<price>, $<billing_date>)`, {
+        account_id: account_id['account_id'],
+        subscription_id: subscriptionId,
+        payment_method: paymentMethod,
+        price: subscriptionPrice.subscription_price,
+        billing_date: new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)) // Adding a week in milliseconds
+      });
+
+      // Create profile
+      await t.none(`INSERT INTO Profile (account_id, age, profile_image, profile_name, language)
+      VALUES ($<account_id>, $<age>, $<profile_image>, $<profile_name>, $<language>)`, {
+        account_id: account_id['account_id'],
+        age: age,
+        profile_image: 'default',
+        profile_name: (`${firstName}-${lastName}`).toLowerCase(),
+        language: language
+      });
+    });
   } catch (err) {
-    responder(res, 500, 'error', 'Something went wrong')
+    responder(res, 500, 'error', 'Internal Server Error');
     return;
   }
 
@@ -102,12 +148,10 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   try {
     const info = await sendMail(email, 'Account Verification', 'register/verification/', token, 'Verify Your account! This link is valid for 30 min');
     console.log('Email sent: ', info.response);
-
     responder(res, 201, 'message', 'Register successfull, verification email sent')
     return;
   } catch (err) {
-    console.log(3);
-    responder(res, 500, 'error', 'Error sending email')
+    responder(res, 500, 'error', 'Error sending email');
     return;
   }
 };
@@ -119,8 +163,8 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
   const token: string = req.params.token!;
 
   if (token === undefined) {
-    responder(res, 400, 'error', 'Invalid Request')
-    return
+    responder(res, 400, 'error', 'Invalid Request');
+    return;
   }
 
   //verify token and activate account in db
@@ -142,8 +186,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
     }
 
     try {
-      // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
-      const invitedObject = await db.oneOrNone('SELECT * FROM Invite WHERE invited_email = ${invitedEmail}', {
+      const invitedObject = await db.oneOrNone('SELECT * FROM invite WHERE invited_email = ${invitedEmail}', {
         invitedEmail: email
       });
       if (invitedObject) {
@@ -154,21 +197,51 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         //Create a new subscription for the invited user with a free trial
         try {
           await db.tx(async (t) => {
-            // Update inviting user to have invited = 
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            // grab inviting user's account id
+            const invitingEmailObject: any = await t.one('SELECT * FROM Account WHERE email = $<email>', {
+              email: invitedObject.inviting_email
+            });
+
+            // grab invited user's account id
+            const invitedEmailObject: any = await t.one('SELECT * FROM Account WHERE email = $<email>', {
+              email: invitedObject.invited_email
+            });
+
+            // 1. Update inviting user to have invited = true
             await t.none('UPDATE Account SET invited = $<invited> WHERE email = $<email>', {
               invited: true,
               email: invitedObject.inviting_email
             });
 
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            // 2. Update invited user to have invited = true and verified = true
             await t.none('UPDATE Account SET invited = $<invited>, verified = $<verified> WHERE email = $<email>', {
               invited: true,
               verified: true,
-              email: email
+              email: invitedObject.invited_email
             });
 
-            //! DB CONNECTION HERE -----------------------------------------------------------------------------------
+            console.log(invitingEmailObject['active_subscription'], invitingEmailObject['active_subscription'])
+
+            // if inviting user and invited user both have active subscriptions
+            if (invitingEmailObject['active_subscription'] === true && invitedEmailObject['active_subscription'] === true) {
+              // if inviting user has not invited anyone yet
+              if (invitingEmailObject['invited'] === false) {
+                // decrement inviting user's subscription price by 2
+                await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
+                  decrementAmount: 2.0,
+                  account_id: invitingEmailObject['account_id']
+                });
+              }
+            
+
+            // 4. Update invited user's subscription to have price - 2 (Invite can not be sent to an account already in the db therefore no need to check if invited user is invited)
+              await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
+                decrementAmount: 2.0,
+                account_id: invitedEmailObject['account_id']
+              });
+            }
+
+            // 5. Delete invite object from db
             await t.none('DELETE FROM Invite WHERE invited_email = $<email>', {
               email: invitedObject.invited_email
             });
@@ -182,46 +255,33 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
 
           });
           responder(res, 200, 'message', 'Account verified successfully');
-          return
+          return;
         } catch (err) {
           responder(res, 500, 'error', 'Internal Server Error');
-          return
+          return;
         }
-
-        /* If there is an invited object, update the invited column in the Account table to true for the inviting 
-        user and delete the invite object from the Invite table and  */
       }
 
       //If there is no invited object, execute the following just update the verified column in the Account table to true
       try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
-        await db.tx(async (t) => {
-          await t.none('UPDATE Account SET verified = $<verified> WHERE email = $<email>', {
-            verified: true,
-            email: email
-          });
-
-          await t.none('INSERT INTO Subscription (subscribed, type, price, date) VALUES ($<subscribed>, $<type>, $<price>, $<date>)', {
-            subscribed: false,
-            type: 'free trial',
-            price: 0,
-            date: new Date()
-          });
+        await db.none('UPDATE Account SET verified = $<verified> WHERE email = $<email>', {
+          verified: true,
+          email: email
         })
-        responder(res, 200, 'message', 'Account verified successfully')
+        responder(res, 200, 'message', 'Account verified successfully');
         return;
       } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error')
         return;
       }
-    } catch (error) {
+    } catch (err) {
+      console.log(err);
       responder(res, 500, 'error', 'Internal Server Error')
       return;
     }
     //If everything is okay, send good response
   }
   catch (err: any) {
-
     if (err.name === 'TokenExpiredError') {
       responder(res, 401, 'error', 'Expired Link');
       return;
@@ -271,7 +331,6 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
     }
 
     try {
-      // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
       // check if invited email is already registered
       const user: null | string = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
         email: invitedEmail
@@ -285,7 +344,6 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
 
       if (!user) {
         try {
-          // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
           // check if invited email is already invited by the same user
           const inviteObject = await db.oneOrNone('SELECT * FROM Invite WHERE invited_email = ${invitedEmail} AND inviting_email = ${invitingEmail}', {
             invitedEmail: invitedEmail,
@@ -301,7 +359,6 @@ export const getInvitedUser = async (req: Request, res: Response): Promise<void>
           // if invited email is not already invited by the same user, add it to the db
           if (inviteObject === null) {
             try {
-              // ! DB CONNECTION HERE -----------------------------------------------------------------------------------
               await db.none(`INSERT INTO Invite (invited_email, inviting_email) VALUES ($<invitedEmail>, $<invitingEmail>)`, {
                 invitedEmail: invitedEmail,
                 invitingEmail: invitingEmail
