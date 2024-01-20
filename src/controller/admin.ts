@@ -1,18 +1,17 @@
 import { Request, Response } from 'express';
-import { isValidEmail, isValidPassword, validateStrings } from '../utils/validators';
+import { isValidEmail, isValidPassword, validateNumbers, validateStrings } from '../utils/validators';
 import jwtTokenGenerator from '../utils/jwt.generator';
 import { db } from '../db';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import responder from '../utils/responder';
 import { User } from '../types/user';
+import { userInfo } from 'os';
 
 export const postLoginAdmin = async (req: Request, res: Response) => {
-    console.log("bruh");
-
     const email: string = req.body.email!;
     const password: string = req.body.password!;
-    console.log("here");
+
     if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email.');
         return; 
@@ -24,7 +23,7 @@ export const postLoginAdmin = async (req: Request, res: Response) => {
 
     // Get admin from db
     try {
-        const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email} AND user_type = Admin', {
+        const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
 
@@ -43,8 +42,9 @@ export const postLoginAdmin = async (req: Request, res: Response) => {
         }
 
         // Successful Login
-        const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'role', userObject.usertype);
-        responder(res, 200, 'message', 'Successfull login!', 'token', token)
+        const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'purpose', 'authentication');
+        console.log(userObject.user_type);
+        responder(res, 200, 'message', 'Successfull login!', 'token', token, 'role', userObject.user_type, 'id', userObject.account_id)
         return;
     } catch(err) {
         responder(res, 500, 'error', 'Internal Server Error')
@@ -52,3 +52,39 @@ export const postLoginAdmin = async (req: Request, res: Response) => {
     }  
 };
 
+export const getAdminProfile =async (req:Request & { user?: User }, res:Response): Promise<void> => {
+    const account_id: string = req.params.id!;
+
+    if (isNaN(Number(account_id))) {
+        responder(res, 400, 'error', 'Profile ID must be a number');
+        return;
+    }
+
+    if (validateNumbers([Number(account_id)]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    try {
+        const profile = await db.oneOrNone('SELECT * FROM Account WHERE account_id = ${account_id}', {
+            account_id: account_id
+        });
+
+        if (!profile) {
+            responder(res, 404, 'error', 'Profile not found');
+            return;
+        }
+
+        if (profile.account_id !== req.user?.account_id) {
+            responder(res, 401, 'error', 'Unauthorized');
+            return;
+        }
+
+        responder(res, 200, 'profile', profile);
+        return;
+    } catch(err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+    
+}
