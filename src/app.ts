@@ -33,6 +33,9 @@ app.use("/user" , userRoutes)
 const contentRoutes = require('./routes/content')
 app.use("/content", contentRoutes);
 
+const adminRoutes = require('./routes/admin')
+app.use("/admin", contentRoutes);
+
 //Test Route
 const indexRoutes = require('./routes/index');
 app.use("/", indexRoutes);
