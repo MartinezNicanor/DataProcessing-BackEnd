@@ -100,7 +100,7 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
     //Validate email
     if (!isValidEmail(email)) {
-        responder(res, 400, 'error', 'Invalid email address. Please make sure that the inpues are valid.');
+        responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.');
         return;
     }
 
@@ -177,7 +177,7 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
         if (err.name === 'TokenExpiredError') {
             responder(res, 401, 'error', 'Expired Link');
         } else {
-            responder(res, 400, 'err', 'JWT malformed')
+            responder(res, 400, 'error', 'JWT malformed')
             return;
         }
     }
@@ -223,7 +223,7 @@ export const getPasswordResetVerification = async (req: Request, res: Response):
         if (err.name === 'TokenExpiredError') {
             responder(res, 401, 'error', 'Expired Link');
         } else {
-            responder(res, 400, 'err', 'JWT malformed')
+            responder(res, 400, 'error', 'JWT malformed')
             return;
         }
     }

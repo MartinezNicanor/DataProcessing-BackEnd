@@ -132,7 +132,7 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
       VALUES ($<account_id>, $<age>, $<profile_image>, $<profile_name>, $<language>)`, {
         account_id: account_id['account_id'],
         age: age,
-        profile_image: 'default',
+        profile_image: 'default.jpeg',
         profile_name: (`${firstName}-${lastName}`).toLowerCase(),
         language: language
       });
@@ -184,6 +184,25 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
       responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.')
       return;
     }
+
+    //Check if email is already verified
+    try {
+      const verifiedObject = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email} AND verified = ${verified}', {
+        email: email,
+        verified: true
+      });
+
+      if(verifiedObject){
+        responder(res, 400, 'error', 'Account has been verified already');
+        return;
+      }
+
+    } catch (err) {
+      responder(res, 500, 'error', 'Internal Server Error')
+      return;
+    }
+
+    //Check if email is already in DB
 
     try {
       const invitedObject = await db.oneOrNone('SELECT * FROM invite WHERE invited_email = ${invitedEmail}', {
