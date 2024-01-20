@@ -15,6 +15,13 @@ export interface User {
   user_type: string;
 }
 
+export interface Subscription {
+  subscription_id: number,
+  subscribed: boolean,
+  type: string,
+  price: number,
+  date: string,
+}
 
 
 

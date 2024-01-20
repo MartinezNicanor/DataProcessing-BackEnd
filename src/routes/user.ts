@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from "express";
-import { postCreateNewProfile, patchUpdateProfile, deleteDeleteProfile, getUserProfile, patchUpdateProfilePreferences, postSendInvitation, patchUpdateNewBillingDate, patchUpdatePaymentMethod } from '../controller/user';
+import { postCreateNewProfile, patchUpdateProfile, deleteDeleteProfile, getUserProfile, patchUpdateProfilePreferences, postSendInvitation, patchUpdateNewBillingDate, patchUpdatePaymentMethod, deleteDeleteUserAccount } from '../controller/user';
 import authenticateToken from "../middleware/authenticate";
 import upload from "../config/multerConfig";
 
@@ -9,6 +9,9 @@ const router : Router = express.Router();
 router.use(authenticateToken)  
 
 router.use(upload.single('profilePicture'));
+
+//Account Deletion 
+router.delete('/current', (req: Request, res: Response) => deleteDeleteUserAccount(req, res));
 
 //Profile Creation
 router.post('/current/profiles', (req: Request, res: Response) => postCreateNewProfile(req, res));
