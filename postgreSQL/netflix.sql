@@ -1,11 +1,9 @@
-
 -- 3.2 creating script for tables in Netflix
 
 CREATE TABLE Country (
     country_id SERIAL PRIMARY KEY,
     country_name VARCHAR (255)
 );
-
 
 CREATE TABLE Genre (
     genre_id SERIAL PRIMARY KEY,
@@ -221,7 +219,6 @@ CREATE VIEW country_information_show AS (
         C.country_id, S.title, G.title
 );
 
-
 --stored procedure that needs to be created before country_statistics view
 CREATE OR REPLACE FUNCTION calculate_country_total_revenue(country text)
 RETURNS DECIMAL AS $$
@@ -242,8 +239,6 @@ RETURNS DECIMAL AS $$
         RETURN total_revenue;
     END;
 $$ LANGUAGE plpgsql;
-
-DROP VIEW country_statistics; -- DELETE ME
 
 CREATE VIEW country_statistics AS (
     SELECT
