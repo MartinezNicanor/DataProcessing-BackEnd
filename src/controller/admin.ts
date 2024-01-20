@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import responder from '../utils/responder';
 import { User } from '../types/user';
 import { userInfo } from 'os';
+import { profile } from 'console';
 
 export const postLoginAdmin = async (req: Request, res: Response) => {
     const email: string = req.body.email!;
@@ -43,7 +44,6 @@ export const postLoginAdmin = async (req: Request, res: Response) => {
 
         // Successful Login
         const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'purpose', 'authentication');
-        console.log(userObject.user_type);
         responder(res, 200, 'message', 'Successfull login!', 'token', token, 'role', userObject.user_type, 'id', userObject.account_id)
         return;
     } catch(err) {
@@ -52,7 +52,7 @@ export const postLoginAdmin = async (req: Request, res: Response) => {
     }  
 };
 
-export const getAdminProfile =async (req:Request & { user?: User }, res:Response): Promise<void> => {
+export const getAdminProfile = async (req:Request & { user?: User }, res:Response): Promise<void> => {
     const account_id: string = req.params.id!;
 
     if (isNaN(Number(account_id))) {
@@ -86,5 +86,125 @@ export const getAdminProfile =async (req:Request & { user?: User }, res:Response
         responder(res, 500, 'error', 'Internal Server Error');
         return;
     }
-    
+};
+
+export const getJuniorView = async (req:Request & { user?: User }, res:Response) => {
+    if (req.user?.user_type !== 'Junior') {
+        responder(res, 403, 'error', 'Permission denied');
+        return;
+    }
+
+    try {
+        const view = await db.manyOrNone('SELECT * FROM junior');
+
+        if (!view) {
+            responder(res, 404, 'error', 'View does not exist')
+            return;
+        }
+
+        responder(res, 200, 'data', view)
+        return;
+    } catch(err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+}
+
+export const getMediorView = async (req:Request & { user?: User }, res:Response) => {
+    if (req.user?.user_type !== 'Medior') {
+        responder(res, 403, 'error', 'Permission denied');
+        return;
+    }
+
+    try {
+        const view = await db.manyOrNone('SELECT * FROM medior');
+
+        if (!view) {
+            responder(res, 404, 'error', 'View does not exist')
+            return;
+        }
+
+        responder(res, 200, 'data', view)
+        return;
+    } catch(err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+}
+
+export const getSeniorView = async (req:Request & { user?: User }, res:Response) => {
+    if (req.user?.user_type !== 'Senior') {
+        responder(res, 403, 'error', 'Permission denied');
+        return;
+    }
+
+    try {
+        const view = await db.manyOrNone('SELECT * FROM senior');
+
+        if (!view) {
+            responder(res, 404, 'error', 'View does not exist')
+            return;
+        }
+
+        responder(res, 200, 'data', view)
+        return;
+    } catch(err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+}
+
+export const getStatistics = async (req: Request & { user?: User }, res: Response) => {
+    const country: string = req.params.country!;
+
+    if (req.user?.user_type === 'User') {
+        responder(res, 403, 'error', 'Permission denied');
+        return;
+    }
+
+    try {
+        const statistics = await db.manyOrNone('SELECT * FROM country_statistics')
+
+        if (!statistics) {
+            responder(res, 404, 'error', 'No statistics found')
+            return;
+        }
+
+        responder(res, 200, 'data', statistics);
+        return;
+    } catch(err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+}
+
+export const getStatisticsByCountry = async (req: Request & { user?: User }, res: Response) => {
+    const country: string = req.params.country!;
+
+    if (req.user?.user_type === 'User') {
+        responder(res, 403, 'error', 'Permission denied');
+        return;
+    }
+
+    if (validateStrings([String(country)]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    try {
+        const statistics = await db.oneOrNone('SELECT * FROM country_statistics WHERE country_name = ${country}', {
+            country: country
+        });
+
+        if (!statistics) {
+            responder(res, 404, 'error', 'No statistics found')
+            return;
+        }
+
+        responder(res, 200, 'data', statistics);
+        return;
+    } catch(err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
 }

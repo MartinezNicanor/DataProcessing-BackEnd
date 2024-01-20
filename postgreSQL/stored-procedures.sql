@@ -111,7 +111,7 @@ RETURNS TRIGGER AS $$
             new_data = null;
         END IF;
 
-        INSERT INTO account_log (table_name, operation_type, user_email, old_data, new_data)
+        INSERT INTO account_log (table_name, operation_type, account_email, old_data, new_data)
         VALUES (TG_TABLE_NAME, TG_OP, current_user, old_data, new_data);
 
         RETURN NEW;

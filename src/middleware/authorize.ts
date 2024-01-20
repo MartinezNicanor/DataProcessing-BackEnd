@@ -6,7 +6,7 @@ import { User } from '../types/user';
 export function allowJuniorMediorSenior(req: Request & { user?: User }, res: Response, next: NextFunction) {
   const user = req.user;
 
-  if (user && (user.usertype === 'junior' || user.usertype === 'medior' || user.usertype === 'senior')) {
+  if (user && (user.user_type === 'junior' || user.user_type === 'medior' || user.user_type === 'senior')) {
     next();
   } else {
     responder(res, 403, 'error', 'User not authorized');
@@ -17,7 +17,7 @@ export function allowJuniorMediorSenior(req: Request & { user?: User }, res: Res
 export function allowMediorSenior(req: Request & { user?: User }, res: Response, next: NextFunction) {
   const user = req.user;
 
-  if (user && (user.usertype === 'medior' || user.usertype === 'senior')) {
+  if (user && (user.user_type === 'medior' || user.user_type === 'senior')) {
     next();
   } else {
     responder(res, 403, 'error', 'User not authorized');
@@ -28,7 +28,7 @@ export function allowMediorSenior(req: Request & { user?: User }, res: Response,
 export function allowSenior(req: Request & { user?: User }, res: Response, next: NextFunction) {
   const user = req.user;
 
-  if (user && user.usertype === 'senior') {
+  if (user && user.user_type === 'senior') {
     next();
   } else {
     responder(res, 403, 'error', 'User not authorized');
