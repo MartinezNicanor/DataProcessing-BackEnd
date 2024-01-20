@@ -1,9 +1,11 @@
+
 -- 3.2 creating script for tables in Netflix
 
 CREATE TABLE Country (
     country_id SERIAL PRIMARY KEY,
     country_name VARCHAR (255)
 );
+
 
 CREATE TABLE Genre (
     genre_id SERIAL PRIMARY KEY,
@@ -108,7 +110,7 @@ CREATE TABLE Account_subscription(
     subscription_id INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('PayPal','Visa','MasterCard','Apple Pay','Google Pay','iDEAL')),
     price FLOAT NOT NULL,
-    billing_date TIMESTAMP NOT NULL,
+    billing_date DATE NOT NULL,
     FOREIGN KEY (account_id) REFERENCES Account (account_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (subscription_id) REFERENCES Subscription (subscription_id) ON DELETE NO ACTION ON UPDATE CASCADE
 );
@@ -156,7 +158,7 @@ CREATE TABLE Series_watch_history (
     episode_id INT NOT NULL,
     watch_history_id INT NOT NULL,
     pause_time INTERVAL DEFAULT '00:00:00',
-    language_settings VARCHAR(25),
+    language_settings VARCHAR(25) NOT NULL DEFAULT 'en',
     FOREIGN KEY (series_id) REFERENCES Series (series_id) ON DELETE CASCADE,
     FOREIGN KEY (season_id) REFERENCES Season (season_id) ON DELETE CASCADE,
     FOREIGN KEY (episode_id) REFERENCES Episode (episode_id) ON DELETE CASCADE,
@@ -219,6 +221,7 @@ CREATE VIEW country_information_show AS (
         C.country_id, S.title, G.title
 );
 
+
 --stored procedure that needs to be created before country_statistics view
 CREATE OR REPLACE FUNCTION calculate_country_total_revenue(country text)
 RETURNS DECIMAL AS $$
@@ -241,6 +244,7 @@ RETURNS DECIMAL AS $$
 $$ LANGUAGE plpgsql;
 
 DROP VIEW country_statistics; -- DELETE ME
+
 CREATE VIEW country_statistics AS (
     SELECT
         C.country_name,

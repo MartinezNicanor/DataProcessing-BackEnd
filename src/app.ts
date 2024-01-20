@@ -1,9 +1,10 @@
 import express from 'express';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import morgan from 'morgan';
+import responder from './utils/responder';
 
 dotenv.config();
 
