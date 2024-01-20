@@ -69,6 +69,30 @@ function isValidEmail(email: string): Boolean {
         }
     }
     return true;
+  }
+
+  function isValidTimeInterval(timeInterval: string) {
+        const [hours, minutes, seconds] = timeInterval.split(':').map(Number);
+        if (
+            Number.isInteger(hours) && hours >= 0 && hours <= 23 &&
+            Number.isInteger(minutes) && minutes >= 0 && minutes <= 59 &&
+            Number.isInteger(seconds) && seconds >= 0 && seconds <= 59
+        ) {
+            return true;
+        } else {
+            return false;
+        }
+
 }
 
-  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings};
+function languageValidator(language: string): boolean {
+  const acceptedLanguages = ['English', 'French', 'Spanish', 'German', 'Italian', 'Russian', 'Hungarian', 'Dutch', 'Romanian', 'Polish'];
+
+  if (acceptedLanguages.includes(language)) {
+      return true;
+  }
+  return false;
+}
+
+
+  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval, languageValidator};

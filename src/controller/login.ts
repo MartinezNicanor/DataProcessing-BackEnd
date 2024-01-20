@@ -27,7 +27,6 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
 
     //Fetch user object from DB
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
@@ -56,9 +55,8 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
         //check if the passwordMatch if false
         if (!passwordMatch) {
             //if number of attempts is 2 then increase number of attempts and block user
-            if (userObject.log_in_attempt_count == 2) {
+            if (userObject.log_in_attempt_count === 2) {
                 try {
-                    //! DB CONNECTION HERE -----------------------------------------------------------------------------------
                     await db.none('UPDATE Account SET log_in_attempt_count = $<log_in_attempt_count>, blocked = $<blocked> WHERE email = $<email>', {
                         log_in_attempt_count: (userObject.log_in_attempt_count + 1),
                         blocked: true,
@@ -74,7 +72,6 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
 
             //if number of attempts is less than 2, then increase number of attempts and throw error message
             try {
-                //! DB CONNECTION HERE -----------------------------------------------------------------------------------
                 await db.none('UPDATE Account SET log_in_attempt_count = $<log_in_attempt_count> WHERE email = $<email>', {
                     log_in_attempt_count: (userObject.log_in_attempt_count + 1),
                     email: userObject.email
@@ -91,7 +88,6 @@ export const postLoginUser = async (req: Request, res: Response): Promise<void> 
         const token: string = jwtTokenGenerator('24h', 'email', userObject.email, 'purpose', 'authentication');
         responder(res, 200, 'message', 'Successfull login!', 'token', token)
         return;
-
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error')
         return;
@@ -104,13 +100,12 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 
     //Validate email
     if (!isValidEmail(email)) {
-        responder(res, 400, 'error', 'Invalid email address. Please make sure that the inpues are valid.');
+        responder(res, 400, 'error', 'Invalid email address. Please make sure that the input values are valid.');
         return;
     }
 
     //check if user has been registered with email
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
             email: email
         });
@@ -127,11 +122,11 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
             console.log('Email sent: ', info.response);
             responder(res, 200, 'message', 'Password Resest link has been sent successfully')
             return;
+            //Password reset link should redirect to a page where user can enter new password, but thats not possible without frontend therefore it doesnt redirect to any page
         } catch (err) {
             responder(res, 500, 'error', 'Error sending mail')
             return;
         }
-
     } catch (err) {
         responder(res, 500, 'error', 'Internal server error')
         return;
@@ -139,17 +134,15 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
 };
 
 export const patchPasswordResetSubmit = async (req: Request, res: Response): Promise<void> => {
-    //TODO DOUBLECHECK LOGIC HERE TO SEE IF I MISSED ANY EDGE CASES
-
     const token: string = req.params.token!
-    const password : string = req.body.password!
-    
+    const password: string = req.body.password!
+
     if (!isValidPassword(password)) {
         responder(res, 400, 'error', 'Invalid password. Please make sure that the input values are valid.');
         return;
     }
 
-    if(validateStrings([token]) === false){
+    if (validateStrings([token]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     }
@@ -166,7 +159,6 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
 
         try {
             const hashedPassword: string = await bcrypt.hash(password, 10);
-             //! DB CONNECTION HERE -----------------------------------------------------------------------------------
             await db.none("UPDATE Account SET password = $<password>, blocked = $<blocked>, log_in_attempt_count = $<log_in_attempt_count>  WHERE email = $<email>", {
                 password: hashedPassword,
                 blocked: false,
@@ -185,12 +177,55 @@ export const patchPasswordResetSubmit = async (req: Request, res: Response): Pro
         if (err.name === 'TokenExpiredError') {
             responder(res, 401, 'error', 'Expired Link');
         } else {
-            responder(res, 400, 'err', 'JWT malformed')
+            responder(res, 400, 'error', 'JWT malformed')
             return;
         }
     }
 }
 
 export const getPasswordResetVerification = async (req: Request, res: Response): Promise<void> => {
-    //TODO  ADD VERIFICATION HERE TO SEE IF THE RIGHT PERSON HAS SUBMITTED THE PASSWORD RESET REQUEST
-};
+
+    const token: string = req.params.token!
+
+    if (validateStrings([token]) === false) {
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    }
+
+    try {
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+        const userData = decodedToken.data;
+        const email = userData['email'];
+
+        if (userData['purpose'] !== 'password-reset') {
+            responder(res, 401, 'error', 'Incorrect JWT token');
+            return;
+        }
+
+        try {
+            const userObject: null | User = await db.oneOrNone('SELECT * FROM Account WHERE email = ${email}', {
+                email: email
+            });
+
+            if (!userObject) {
+                responder(res, 401, 'error', 'User is not registered')
+                return;
+            }
+
+            responder(res, 200, 'message', 'User is verified to reset password')
+            return;
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal server error')
+            return;
+        }
+
+    } catch (err: any) {
+        if (err.name === 'TokenExpiredError') {
+            responder(res, 401, 'error', 'Expired Link');
+        } else {
+            responder(res, 400, 'error', 'JWT malformed')
+            return;
+        }
+    }
+
+}

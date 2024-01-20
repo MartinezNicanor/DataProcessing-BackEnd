@@ -3,7 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 import responder from '../utils/responder';
 import { db } from '../db';
-import { User, Profile } from '../types/user'
+import { User, } from '../types/user'
 import { isValidEmail } from '../utils/validators';
 
 dotenv.config();
@@ -11,7 +11,6 @@ dotenv.config();
 // Define a custom interface extending the Express Request type and insert all the info that want to be accessed later
 interface AuthenticatedRequest extends Request {
     user?: User,
-    profiel?: Profile
 }
 
 //async function to aoutorize the user
@@ -30,11 +29,13 @@ async function authenticateToken(req: AuthenticatedRequest, res: Response, next:
   try {
     const decodedToken = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET!) as jwt.JwtPayload;
 
+    //check if token is for authentication
     if (decodedToken.data['purpose'] !== 'authentication') {
       responder(res, 401, 'error', 'Not Authorized');
       return;
     }
 
+    //check if token is valid email
     if (!isValidEmail(decodedToken.data['email'])) {
       responder(res, 401, 'error', 'Malformed or Invalid JWT token');
       return;
