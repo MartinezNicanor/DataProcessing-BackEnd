@@ -50,7 +50,7 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
             console.log("File uploaded successfully")
         } else {
             // If no file was uploaded, set a default or placeholder profile picture filename
-            profile_image = 'default';
+            profile_image = 'default.jpeg';
         }
 
         //Insert the user information into DB
@@ -386,7 +386,6 @@ export const postSendInvitation = async (req: Request & { user?: User }, res: Re
 export const deleteDeleteUserAccount = async (req: Request & { user?: User }, res: Response): Promise<void> => {
     //Delete the account
     try {
-        //! DB CONNECTION HERE -----------------------------------------------------------------------------------
         //transaction to delete the account and the profiles associated with the account
         await db.tx(async (t) => {
             await t.none('DELETE FROM Profile WHERE account_id = ${account_id}', {
