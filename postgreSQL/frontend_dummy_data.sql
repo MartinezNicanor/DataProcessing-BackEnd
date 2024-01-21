@@ -2,7 +2,7 @@
 
 -- Dummy data for Country table
 INSERT INTO Country (country_name) VALUES
-('United States'),
+('United States of America'),
 ('United Kingdom'),
 ('Canada'),
 ('Australia'),
