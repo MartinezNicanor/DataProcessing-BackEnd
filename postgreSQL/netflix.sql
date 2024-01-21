@@ -215,8 +215,7 @@ CREATE VIEW country_information_show AS (
     LEFT JOIN Series S ON SC.series_id = S.series_id
     LEFT JOIN Rating R ON S.series_id = R.series_id
     LEFT JOIN Genre G ON S.genre_id = G.genre_id
-    GROUP BY
-        C.country_id, S.title, G.title
+    GROUP BY C.country_id, S.title, G.title
 );
 
 --stored procedure that needs to be created before country_statistics view
@@ -246,12 +245,12 @@ CREATE VIEW country_statistics AS (
         COUNT(A.account_id) AS total_accounts,
         COUNT(CASE WHEN A.active_subscription = true THEN A.account_id END) AS active_subscriptions,
         COUNT(CASE WHEN A.active_subscription = false THEN A.account_id END) AS inactive_subscriptions,
-        (COUNT(CASE WHEN AC.payment_method = 'PayPal' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_paypal,
-        (COUNT(CASE WHEN AC.payment_method = 'Visa' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_visa,
-        (COUNT(CASE WHEN AC.payment_method = 'MasterCard' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_mastercard,
-        (COUNT(CASE WHEN AC.payment_method = 'Apple Pay' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_apple_pay,
-        (COUNT(CASE WHEN AC.payment_method = 'Google Pay' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_google_pay,
-        (COUNT(CASE WHEN AC.payment_method = 'iDEAL' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_ideal,
+        COUNT(CASE WHEN AC.payment_method = 'PayPal' THEN AC.account_id END) AS usage_of_paypal,
+        COUNT(CASE WHEN AC.payment_method = 'Visa' THEN AC.account_id END) AS usage_of_visa,
+        COUNT(CASE WHEN AC.payment_method = 'MasterCard' THEN AC.account_id END) AS usage_of_mastercard,
+        COUNT(CASE WHEN AC.payment_method = 'Apple Pay' THEN AC.account_id END) AS usage_of_apple_pay,
+        COUNT(CASE WHEN AC.payment_method = 'Google Pay' THEN AC.account_id END) AS usage_of_google_pay,
+        COUNT(CASE WHEN AC.payment_method = 'iDEAL' THEN AC.account_id END) AS usage_of_ideal,
         COALESCE((SELECT calculate_country_total_revenue(C.country_name)), 0) AS total_subscription_revenue
     FROM
         Country C
@@ -259,8 +258,8 @@ CREATE VIEW country_statistics AS (
     LEFT JOIN Account A ON C.country_id = A.country_id
     LEFT JOIN Account_subscription AC ON AC.account_id = A.account_id
     LEFT JOIN Subscription S ON AC.subscription_id = S.subscription_id
-    GROUP BY
-        C.country_name
+    GROUP BY C.country_name
+    ORDER BY C.country_name DESC
 );
 
 CREATE VIEW senior AS (
@@ -280,8 +279,9 @@ CREATE VIEW senior AS (
     LEFT JOIN Account_subscription AC ON AC.account_id = A.account_id
     LEFT JOIN Subscription S ON AC.subscription_id = S.subscription_id
     LEFT JOIN Profile P ON A.account_id = P.account_id
-    GROUP BY
-        A.email, A.first_name, A.email, A.last_name, A.street || ' ' || A.zip_code || ' ' || C.country_name, AC.payment_method, S.title, S.subscription_price, A.active_subscription
+    WHERE a.user_type = 'User'
+    GROUP BY A.email, A.first_name, A.email, A.last_name, A.street || ' ' || A.zip_code || ' ' || C.country_name, AC.payment_method, S.title, S.subscription_price, A.active_subscription
+    ORDER BY a.email DESC
 );
 
 CREATE VIEW medior AS (
@@ -296,8 +296,9 @@ CREATE VIEW medior AS (
         Account A
     LEFT JOIN Country C ON A.country_id = C.country_id
     LEFT JOIN Profile P ON A.account_id = P.account_id
-    GROUP BY
-        A.email, A.email, A.first_name, A.last_name, A.street || ' ' || A.zip_code || ' ' || C.country_name, A.active_subscription
+    WHERE a.user_type = 'User'
+    GROUP BY A.email, A.email, A.first_name, A.last_name, A.street || ' ' || A.zip_code || ' ' || C.country_name, A.active_subscription
+    ORDER BY a.email DESC
 );
 
 CREATE VIEW junior AS (
@@ -308,8 +309,9 @@ CREATE VIEW junior AS (
     FROM
         Account A
     LEFT JOIN Profile P ON A.account_id = P.account_id
-    GROUP BY
-        A.email, A.email, A.active_subscription
+    WHERE a.user_type = 'User'
+    GROUP BY A.email, A.email, A.active_subscription
+    ORDER BY a.email DESC
 );
 
 -- table to log account table activities
