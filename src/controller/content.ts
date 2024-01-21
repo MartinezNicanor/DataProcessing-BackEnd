@@ -10,7 +10,7 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
     const movieId: number = req.body.movieId!;
     const profileId: string = req.params.profileId!;
 
-    // TODO: Check if startTime is not longer than movie duration and  if the movieObject is finished, then start the movie from beggining        if its within 3 minitues of movie length then set the finished to true
+    // TODO: Check if startTime is not longer than movie duration and  if the movieObject is finished, then start the movie from beggining  if its within 3 minitues of movie length then set the finished to true
 
     if (!req.body.movieId || !req.params.profileId) {
         console.log(req.body.movieId, req.params.profileId);
@@ -41,7 +41,6 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -53,7 +52,7 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
         });
 
         if (movieObject === null) {
-            responder(res, 400, 'error', 'Content not found');
+            responder(res, 404, 'error', 'Content not found');
             return;
         }
     } catch (err) {
@@ -77,9 +76,6 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
 
 
     //Create new movie watch entry
-
-    //TODO:  If the movieObject is finished, then start the movie from beggining, IF a movie history exists then  grab the start time from the last movie history entry and start the movie from there otherwise start time = 00:00:00
-    //TODO RN add realistic movie durations in dummy data -> UPDATE DB -> write code to test it
     try {
         await db.tx(async t => {
 
@@ -130,7 +126,7 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
                 });
             }
         });
-        responder(res, 201, 'success', 'Movie watch history created');
+        responder(res, 201, 'message', 'Movie watch history created');
         return;
     } catch (err) {
         console.log(err);
