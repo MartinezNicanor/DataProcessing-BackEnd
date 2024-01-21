@@ -4,7 +4,7 @@ import { allowJuniorMediorSenior, allowMediorSenior, allowSenior } from '../midd
 
 const router : Router = express.Router();
 
-import { getAdminProfile, getJuniorView, getMediorView, getSeniorView, getStatistics, getStatisticsByCountry, postLoginAdmin } from '../controller/admin';
+import { getAdminProfile, getJuniorView, getMediorView, getSeniorView, getStatistics, getStatisticsByCountry, getTopRevenueCountries, postLoginAdmin } from '../controller/admin';
 
 
 // Endpoints routes that dont require JWT
@@ -24,5 +24,7 @@ router.get('/seniorView', allowSenior,(req: Request, res : Response) => getSenio
 router.get('/statistics', allowJuniorMediorSenior,(req: Request, res : Response) => getStatistics(req, res));
 
 router.get('/statistics/:country', allowJuniorMediorSenior,(req: Request, res : Response) => getStatisticsByCountry(req, res));
+
+router.get('/topRevenueCountries', allowJuniorMediorSenior,(req: Request, res : Response) => getTopRevenueCountries(req, res));
 
 export = router;
