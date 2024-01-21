@@ -24,8 +24,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
 
   let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en';
 
-  console.log(email, password, firstName, lastName, street, zipCode, countryId, age, paymentMethod, subscriptionId, language)
-
   if (language.includes(",")) {
     const preferredLanguage: string[] = language.split(',')
     language = preferredLanguage[0].trim();
@@ -147,7 +145,6 @@ export const postRegisterUser = async (req: Request, res: Response): Promise<voi
   //send email
   try {
     const info = await sendMail(email, 'Account Verification', 'register/verification/', token, 'Verify Your account! This link is valid for 30 min');
-    console.log('Email sent: ', info.response);
     responder(res, 201, 'message', 'Register successfull, verification email sent')
     return;
   } catch (err) {
@@ -192,7 +189,7 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         verified: true
       });
 
-      if(verifiedObject){
+      if (verifiedObject) {
         responder(res, 400, 'error', 'Account has been verified already');
         return;
       }
@@ -239,8 +236,6 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
               email: invitedObject.invited_email
             });
 
-            console.log(invitingEmailObject['active_subscription'], invitingEmailObject['active_subscription'])
-
             // if inviting user and invited user both have active subscriptions
             if (invitingEmailObject['active_subscription'] === true && invitedEmailObject['active_subscription'] === true) {
               // if inviting user has not invited anyone yet
@@ -251,9 +246,9 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
                   account_id: invitingEmailObject['account_id']
                 });
               }
-            
 
-            // 4. Update invited user's subscription to have price - 2 (Invite can not be sent to an account already in the db therefore no need to check if invited user is invited)
+
+              // 4. Update invited user's subscription to have price - 2 (Invite can not be sent to an account already in the db therefore no need to check if invited user is invited)
               await t.none(`UPDATE account_subscription SET price = price - $<decrementAmount> WHERE account_id = $<account_id>`, {
                 decrementAmount: 2.0,
                 account_id: invitedEmailObject['account_id']
@@ -294,7 +289,6 @@ export const getVerifyUser = async (req: Request, res: Response): Promise<void> 
         return;
       }
     } catch (err) {
-      console.log(err);
       responder(res, 500, 'error', 'Internal Server Error')
       return;
     }
