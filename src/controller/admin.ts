@@ -181,3 +181,20 @@ export const getStatisticsByCountry = async (req: Request & { user?: User }, res
         return;
     }
 }
+
+export const getTopRevenueCountries = async (req: Request & { user?: User }, res: Response) => {
+    try {
+        const statistics = await db.manyOrNone('SELECT * FROM top_revenue_countries()');
+
+        if (!statistics) {
+            responder(res, 404, 'error', 'No statistics found')
+            return;
+        }
+
+        responder(res, 200, 'data', statistics);
+        return;
+    } catch(err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
+}
