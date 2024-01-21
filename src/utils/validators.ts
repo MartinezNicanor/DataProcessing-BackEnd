@@ -94,5 +94,10 @@ function languageValidator(language: string): boolean {
   return false;
 }
 
+function stringDoesNotContainSpecialCharacters(str: string): boolean {
+  const invalidCharacters = ['<', '>', '/', '\\', '|', '{', '}', '[', ']', '(', ')', '&', '$', '#', '@', '!', '^', '*', '%', '`', '~', '+', '=', '?', ':', ';', '"', '\'', ',', ' '];
+  return !invalidCharacters.some(char => str.includes(char));
+}
 
-  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval, languageValidator};
+
+  export {isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval, languageValidator, stringDoesNotContainSpecialCharacters};
