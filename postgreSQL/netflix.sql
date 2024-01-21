@@ -246,12 +246,12 @@ CREATE VIEW country_statistics AS (
         COUNT(A.account_id) AS total_accounts,
         COUNT(CASE WHEN A.active_subscription = true THEN A.account_id END) AS active_subscriptions,
         COUNT(CASE WHEN A.active_subscription = false THEN A.account_id END) AS inactive_subscriptions,
-        (COUNT(CASE WHEN AC.payment_method = 'PayPal' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_paypal,
-        (COUNT(CASE WHEN AC.payment_method = 'Visa' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_visa,
-        (COUNT(CASE WHEN AC.payment_method = 'MasterCard' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_mastercard,
-        (COUNT(CASE WHEN AC.payment_method = 'Apple Pay' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_apple_pay,
-        (COUNT(CASE WHEN AC.payment_method = 'Google Pay' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_google_pay,
-        (COUNT(CASE WHEN AC.payment_method = 'iDEAL' THEN AC.account_id END)::DECIMAL / NULLIF(COUNT(AC.account_id), 0) * 100) AS percentage_of_ideal,
+        COUNT(CASE WHEN AC.payment_method = 'PayPal' THEN AC.account_id END) AS usage_of_paypal,
+        COUNT(CASE WHEN AC.payment_method = 'Visa' THEN AC.account_id END) AS usage_of_visa,
+        COUNT(CASE WHEN AC.payment_method = 'MasterCard' THEN AC.account_id END) AS usage_of_mastercard,
+        COUNT(CASE WHEN AC.payment_method = 'Apple Pay' THEN AC.account_id END) AS usage_of_apple_pay,
+        COUNT(CASE WHEN AC.payment_method = 'Google Pay' THEN AC.account_id END) AS usage_of_google_pay,
+        COUNT(CASE WHEN AC.payment_method = 'iDEAL' THEN AC.account_id END) AS usage_of_ideal,
         COALESCE((SELECT calculate_country_total_revenue(C.country_name)), 0) AS total_subscription_revenue
     FROM
         Country C
