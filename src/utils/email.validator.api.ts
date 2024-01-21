@@ -7,7 +7,6 @@ async function validateEmail(email: string): Promise<AxiosResponse> {
         const response: AxiosResponse = await axios.get(`https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.EMAIL_API_KEY}&email=${email}`);
         return response;
     } catch (err: any) {
-        console.log(err);
         return err;
     }
 }

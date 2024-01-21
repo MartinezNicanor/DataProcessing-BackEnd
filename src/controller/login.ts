@@ -119,7 +119,6 @@ export const postPasswordResetLink = async (req: Request, res: Response): Promis
         try {
             const token = jwtTokenGenerator('30m', 'email', email, 'purpose', 'password-reset');
             const info = await sendMail(email, 'Password Reset', 'login/password-reset/', token, 'Click this to reset password!')
-            console.log('Email sent: ', info.response);
             responder(res, 200, 'message', 'Password Resest link has been sent successfully')
             return;
             //Password reset link should redirect to a page where user can enter new password, but thats not possible without frontend therefore it doesnt redirect to any page

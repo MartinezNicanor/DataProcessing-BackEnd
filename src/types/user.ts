@@ -12,7 +12,7 @@ export interface User {
   country_id: number;
   log_in_attempt_count: number;
   invited: boolean;
-  usertype: string;
+  user_type: string;
 }
 
 export interface Subscription {

@@ -2,15 +2,14 @@ import responder from "../utils/responder";
 import express, { Router, Request, Response } from "express";
 import { db } from '../db'
 import { User } from "../types/user";
-import { isValidEmail, validateStrings, validateNumbers, validateArrayStrings } from "../utils/validators";
+import { isValidEmail, validateStrings, validateNumbers, validateArrayStrings, stringDoesNotContainSpecialCharacters } from "../utils/validators";
 import jwtTokenGenerator from "../utils/jwt.generator";
 import sendEmail from "../utils/email.sender";
-
 
 export const postCreateNewProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     const profileName: string = req.body.profileName;
-    const age: number = (req.body.age !== null && req.body.age >= 0) ? req.body.age : 0  //make sure the age is not negative && it exists, otherwise null
+    const age: number = (req.body.age !== null && req.body.age >= 0) ? Number(req.body.age) : 0  //make sure the age is not negative && it exists, otherwise null
     let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en'  // check for language, 
     let profile_image: string | null = req.file ? req.file.filename : null;
 
@@ -18,6 +17,13 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
     if (language.includes(",")) {
         const preferredLanguage: string[] = language.split(',')
         language = preferredLanguage[0].trim();
+    }
+
+    //validate language header
+    if (!isNaN(Number(language)) || language.length! > 6 || !stringDoesNotContainSpecialCharacters(language)) {
+        console
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
     }
 
     //validate input values
@@ -47,7 +53,6 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
         //Check if file was uploaded
         if (req.file) {
             profile_image = req.file.filename;
-            console.log("File uploaded successfully")
         } else {
             // If no file was uploaded, set a default or placeholder profile picture filename
             profile_image = 'default.jpeg';
@@ -104,8 +109,6 @@ export const getUserProfile = async (req: Request & { user?: User }, res: Respon
             return;
         }
 
-        console.log('profile.account_id', profile.account_id, 'req.user?.account_id', req.user?.account_id);
-
         if (profile.account_id !== req.user?.account_id) {
             responder(res, 401, 'error', 'Unauthorized');
             return;
@@ -142,25 +145,32 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
     if (language.includes(",")) {
         const preferredLanguage: string[] = language.split(',')
         language = preferredLanguage[0].trim();
-    }
+    };
+
+    //validate language header
+    if (!isNaN(Number(language)) || language.length! > 6 || !stringDoesNotContainSpecialCharacters(language)) {
+        console
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
+    };
 
     //validate strings
     if (validateStrings([profileName, language]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    }
+    };
 
     //Check if profile id is a valid string number
     if (isNaN(Number(profile_id))) {
         responder(res, 400, 'error', 'Profile ID must be a number');
         return;
-    }
+    };
 
     //validate numbers values
     if (validateNumbers([Number(profile_id), age]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    }
+    };
 
     //get profile from db
     try {
@@ -178,7 +188,6 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
         //Check which parts of the profile was set to be updated
         if (req.file) {
             profile_image = req.file.filename;
-            console.log("File uploaded successfully")
         } else {
             profile_image = profile.profile_image;
         }
@@ -205,15 +214,15 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
                 profile_id: profile_id
             });
 
-            responder(res, 200, 'message', 'Profile updated successfull');
+            responder(res, 200, 'message', 'Profile updated successfully');
         } catch (err) {
             responder(res, 500, 'error', 'Internal Server Error');
             return;
-        }
+        };
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
-    }
+    };
 };
 
 
@@ -225,14 +234,34 @@ export const deleteDeleteProfile = async (req: Request & { user?: User }, res: R
     if (isNaN(Number(profile_id))) {
         responder(res, 400, 'error', 'Profile ID must be a number');
         return;
-    }
+    };
 
     //validate input values
     if (validateNumbers([Number(profile_id)]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    }
+    };
 
+    //Check if profile matches user id
+    try {
+        const profile = await db.oneOrNone('SELECT * FROM profile WHERE profile_id = ${profile_id}', {
+            profile_id: profile_id
+        });
+
+        if (!profile) {
+            responder(res, 404, 'error', 'Profile not found');
+            return;
+        }
+
+        if (profile.account_id !== req.user?.account_id) {
+            responder(res, 401, 'error', 'Unauthorized');
+            return;
+        }
+
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal Server Error');
+        return;
+    }
     //get profile from db
     try {
         const profile = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = ${profile_id} AND account_id = ${account_id}', {
@@ -244,7 +273,7 @@ export const deleteDeleteProfile = async (req: Request & { user?: User }, res: R
         if (!profile) {
             responder(res, 404, 'error', 'Profile not found');
             return;
-        }
+        };
 
         //Delete the profile
         try {
@@ -257,11 +286,11 @@ export const deleteDeleteProfile = async (req: Request & { user?: User }, res: R
         } catch (err) {
             responder(res, 500, 'error', 'Internal Server Error');
             return;
-        }
+        };
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
-    }
+    };
 };
 
 export const patchUpdateProfilePreferences = async (req: Request & { user?: User }, res: Response): Promise<void> => {
@@ -278,25 +307,25 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
     if (!req.params.profileId) {
         responder(res, 400, 'error', 'Profile ID is required');
         return;
-    }
+    };
 
     //Check if profile id is a number req.params is always string
     if (isNaN(Number(profile_id))) {
         responder(res, 400, 'error', 'Profile ID must be a number');
         return;
-    }
+    };
 
     //validate input values
     if (validateNumbers([min_age, Number(profile_id)]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    }
+    };
 
     //validate input values crazy array validation
-    if (validateArrayStrings([movie, series, genres]) === false || (validateArrayStrings([viewing_class]) === false) && viewing_class.every(item => allowedViewingClasses.includes(item.trim())) === false) {
+    if (validateArrayStrings([movie, series, genres]) === false || (validateArrayStrings([viewing_class]) === false) || viewing_class.every(item => allowedViewingClasses.includes(item.trim())) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    }
+    };
 
     //get profile from db
     try {
@@ -309,7 +338,7 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
         if (!profile) {
             responder(res, 404, 'error', 'Profile not found');
             return;
-        }
+        };
 
         //Update the profile preferences
         const updatedPreferences: { [key: string]: string[] } =
@@ -319,7 +348,7 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
             "genres": genres,
             "viewing_class": viewing_class,
             "min_age": [String(min_age)]
-        }
+        };
 
         //Update the profile
         try {
@@ -333,12 +362,12 @@ export const patchUpdateProfilePreferences = async (req: Request & { user?: User
         } catch (err) {
             responder(res, 500, 'error', 'Internal Server Error');
             return;
-        }
+        };
 
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
-    }
+    };
 };
 
 export const postSendInvitation = async (req: Request & { user?: User }, res: Response): Promise<void> => {
@@ -349,7 +378,7 @@ export const postSendInvitation = async (req: Request & { user?: User }, res: Re
     if (!isValidEmail(email)) {
         responder(res, 400, 'error', 'Invalid email', `err`, `${email} is not a valid email`);
         return;
-    }
+    };
 
     //Check if the email is already registered
     try {
@@ -361,7 +390,7 @@ export const postSendInvitation = async (req: Request & { user?: User }, res: Re
         if (account) {
             responder(res, 400, 'error', 'Account is already registered');
             return;
-        }
+        };
 
         //Generate the token
         const token: string = jwtTokenGenerator('24h', 'invitingEmail', req.user?.email!, 'invitedEmail', email, 'purpose', 'invite')
@@ -369,13 +398,12 @@ export const postSendInvitation = async (req: Request & { user?: User }, res: Re
         //Send the email
         try {
             const info = await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
-            console.log('Email sent: ', info.response);
             responder(res, 200, 'message', 'Invitation sent successfully');
             return;
         } catch (error) {
             responder(res, 500, 'error', 'Internal Server Error');
             return;
-        }
+        };
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
@@ -400,7 +428,7 @@ export const deleteDeleteUserAccount = async (req: Request & { user?: User }, re
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
         return;
-    }
+    };
 };
 
 export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, res: Response): Promise<void> => {
@@ -417,10 +445,9 @@ export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, 
         responder(res, 200, 'message', 'Billing date updated successfully');
         return;
     } catch (err) {
-        console.log(err)
         responder(res, 500, 'error', 'Internal Server Error');
         return;
-    }
+    };
 };
 
 export const patchUpdatePaymentMethod = async (req: Request & { user?: User }, res: Response): Promise<void> => {
@@ -434,13 +461,13 @@ export const patchUpdatePaymentMethod = async (req: Request & { user?: User }, r
     if (validateStrings([paymentMethod]) === false || possiblePaymentMethods.includes(paymentMethod) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    }
+    };
 
     //validate input values
     if (validateNumbers([subscriptionId]) === false || subscriptionId > 3) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    }
+    };
 
     //Update the payment method
     try {
