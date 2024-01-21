@@ -89,11 +89,6 @@ export const getAdminProfile = async (req:Request & { user?: User }, res:Respons
 };
 
 export const getJuniorView = async (req:Request & { user?: User }, res:Response) => {
-    if (req.user?.user_type !== 'Junior') {
-        responder(res, 403, 'error', 'Permission denied');
-        return;
-    }
-
     try {
         const view = await db.manyOrNone('SELECT * FROM junior');
 
@@ -111,11 +106,6 @@ export const getJuniorView = async (req:Request & { user?: User }, res:Response)
 }
 
 export const getMediorView = async (req:Request & { user?: User }, res:Response) => {
-    if (req.user?.user_type !== 'Medior') {
-        responder(res, 403, 'error', 'Permission denied');
-        return;
-    }
-
     try {
         const view = await db.manyOrNone('SELECT * FROM medior');
 
@@ -133,11 +123,6 @@ export const getMediorView = async (req:Request & { user?: User }, res:Response)
 }
 
 export const getSeniorView = async (req:Request & { user?: User }, res:Response) => {
-    if (req.user?.user_type !== 'Senior') {
-        responder(res, 403, 'error', 'Permission denied');
-        return;
-    }
-
     try {
         const view = await db.manyOrNone('SELECT * FROM senior');
 
@@ -155,13 +140,6 @@ export const getSeniorView = async (req:Request & { user?: User }, res:Response)
 }
 
 export const getStatistics = async (req: Request & { user?: User }, res: Response) => {
-    const country: string = req.params.country!;
-
-    if (req.user?.user_type === 'User') {
-        responder(res, 403, 'error', 'Permission denied');
-        return;
-    }
-
     try {
         const statistics = await db.manyOrNone('SELECT * FROM country_statistics')
 
@@ -180,11 +158,6 @@ export const getStatistics = async (req: Request & { user?: User }, res: Respons
 
 export const getStatisticsByCountry = async (req: Request & { user?: User }, res: Response) => {
     const country: string = req.params.country!;
-
-    if (req.user?.user_type === 'User') {
-        responder(res, 403, 'error', 'Permission denied');
-        return;
-    }
 
     if (validateStrings([String(country)]) === false) {
         responder(res, 400, 'error', 'Invalid input values');
