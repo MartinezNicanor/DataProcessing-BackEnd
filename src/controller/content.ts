@@ -13,7 +13,6 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
     // TODO: Check if startTime is not longer than movie duration and  if the movieObject is finished, then start the movie from beggining  if its within 3 minitues of movie length then set the finished to true
 
     if (!req.body.movieId || !req.params.profileId) {
-        console.log(req.body.movieId, req.params.profileId);
         responder(res, 400, 'error', 'ID parameters are required');
         return;
     }
@@ -24,7 +23,6 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
     }
 
     if (!validateNumbers([(Number(movieId)), (Number(profileId))])) {
-        console.log(movieId, profileId, typeof (movieId), typeof (profileId), Number(movieId), Number(profileId))
         responder(res, 400, 'error', 'Invalid Request');
         return;
     }
@@ -129,7 +127,6 @@ export const postStartWatchMovie = async (req: Request & { user?: User }, res: R
         responder(res, 201, 'message', 'Movie watch history created');
         return;
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -152,7 +149,6 @@ export const postEndWatchMovie = async (req: Request & { user?: User }, res: Res
     }
 
     if (!validateNumbers([(Number(movieId)), (Number(profileId))])) {
-        console.log(movieId, profileId, typeof (movieId), typeof (profileId), Number(movieId), Number(profileId))
         responder(res, 400, 'error', 'Invalid Request');
         return;
     }
@@ -174,7 +170,6 @@ export const postEndWatchMovie = async (req: Request & { user?: User }, res: Res
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -190,7 +185,6 @@ export const postEndWatchMovie = async (req: Request & { user?: User }, res: Res
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -213,18 +207,15 @@ export const postEndWatchMovie = async (req: Request & { user?: User }, res: Res
 
             //Check if the movie watch history matches the movie so you wont be able to start a new movie and end a different movie
             if (watchHistoryObject !== null && movieWatchHistoryObject.movie_id !== Number(movieId)) {
-                console.log(movieWatchHistoryObject.movie_id, movieId, watchHistoryObject !== null, movieWatchHistoryObject.movie_id !== movieId);
                 responder(res, 400, 'error', 'Previous movie watch history does not match the movie');
                 return;
             };
 
         } catch (err) {
-            console.log(err);
             responder(res, 500, 'error', 'Internal server error');
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     };
@@ -274,7 +265,6 @@ export const postEndWatchMovie = async (req: Request & { user?: User }, res: Res
         responder(res, 201, 'success', 'Movie watch history created');
         return;
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -327,7 +317,6 @@ export const getWatchMovie = async (req: Request & { user?: User }, res: Respons
         return;
 
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -403,12 +392,10 @@ export const getWatchMovieSubtitle = async (req: Request & { user?: User }, res:
             return;
 
         } catch (err) {
-            console.log(err);
             responder(res, 500, 'error', 'Internal server error');
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -450,7 +437,6 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -466,25 +452,21 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
 
     //Check if season exists
     try {
-        console.log('here', seasonId);
         const seasonObject = await db.oneOrNone('SELECT * FROM Season WHERE season_id = ${seasonId}', {
             seasonId: seasonId
         });
-        console.log(seasonObject);
 
         if (seasonObject === null) {
             responder(res, 400, 'error', 'Content not found');
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -500,7 +482,6 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -516,7 +497,6 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
             return;
         }
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
     }
 
@@ -572,7 +552,6 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
                 responder(res, 201, 'success', 'Series watch history created');
                 return;
             } catch (err) {
-                console.log(err);
                 responder(res, 500, 'error', 'Internal server error');
                 return;
             }
@@ -611,7 +590,6 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
                 responder(res, 201, 'success', 'Series watch history created');
                 return;
             } catch (err) {
-                console.log(err);
                 responder(res, 500, 'error', 'Internal server error');
                 return;
             }
@@ -644,14 +622,12 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
                 responder(res, 201, 'success', 'Series watch history created');
                 return;
             } catch (err) {
-                console.log(err);
                 responder(res, 500, 'error', 'Internal server error');
                 return;
             }
         }
 
     } catch (err) {
-        console.log(err);
         responder(res, 500, 'error', 'Internal server error');
         return;
     }

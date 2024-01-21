@@ -21,7 +21,6 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
     //validate language header
     if (!isNaN(Number(language)) || language.length! > 6 || !stringDoesNotContainSpecialCharacters(language)) {
-        console.log(`language: ${language}, isNaN: ${!isNaN(Number(language))}, length: ${language.length! > 6}, stringDoesNotContainSpecialCharacters: ${!stringDoesNotContainSpecialCharacters(language)}`)
         console
         responder(res, 400, 'error', 'Invalid input values');
         return;
@@ -54,13 +53,10 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
         //Check if file was uploaded
         if (req.file) {
             profile_image = req.file.filename;
-            console.log("File uploaded successfully")
         } else {
             // If no file was uploaded, set a default or placeholder profile picture filename
             profile_image = 'default.jpeg';
         }
-
-        console.log(language)
 
         //Insert the user information into DB
         try {
@@ -153,7 +149,6 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
 
     //validate language header
     if (!isNaN(Number(language)) || language.length! > 6 || !stringDoesNotContainSpecialCharacters(language)) {
-        console.log(`language: ${language}, isNaN: ${!isNaN(Number(language))}, length: ${language.length! > 6}, stringDoesNotContainSpecialCharacters: ${!stringDoesNotContainSpecialCharacters(language)}`)
         console
         responder(res, 400, 'error', 'Invalid input values');
         return;
@@ -193,7 +188,6 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
         //Check which parts of the profile was set to be updated
         if (req.file) {
             profile_image = req.file.filename;
-            console.log("File uploaded successfully")
         } else {
             profile_image = profile.profile_image;
         }
@@ -404,7 +398,6 @@ export const postSendInvitation = async (req: Request & { user?: User }, res: Re
         //Send the email
         try {
             const info = await sendEmail(email, 'Invitation to join Netflix', `register/invitation/`, token, 'to register an account and get 2 euro off')
-            console.log('Email sent: ', info.response);
             responder(res, 200, 'message', 'Invitation sent successfully');
             return;
         } catch (error) {
@@ -452,7 +445,6 @@ export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, 
         responder(res, 200, 'message', 'Billing date updated successfully');
         return;
     } catch (err) {
-        console.log(err)
         responder(res, 500, 'error', 'Internal Server Error');
         return;
     };
