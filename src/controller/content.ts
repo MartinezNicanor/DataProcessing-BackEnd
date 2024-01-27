@@ -551,11 +551,12 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
     }
 
 
-    //Create new series watch entry
-    //TODO if there is no watch history entry then create a new one, if there is then continue it from pause time. 
-    //TODO If the episode is finised then start the next episode, 
-    //TODO if the season is finished then start the next season, 
-    //TODO if its the last episode of the last season then start from the beggining
+    /*Create new series watch entry
+    if there is no watch history entry then create a new one, if there is then continue it from pause time. 
+    if the episode is finised then start the next episode, 
+    if the season is finished then start the next season, 
+    if its the last episode of the last season then start from the beggining
+    */
 
     try {
         await db.tx(async t => {
@@ -741,7 +742,6 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
-        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -757,7 +757,6 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
-        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -773,7 +772,6 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
-        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -795,23 +793,16 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             };
 
             //Check if the series watch history matches the series so you wont be able to start a new series and end a different series
-            console.log((watchHistoryObject !== null && (seriesWatchHistoryObject.series_id !== seriesId || seriesWatchHistoryObject.season_id !== seasonId || seriesWatchHistoryObject.episode_id !== episodeId)))
-            console.log(seriesWatchHistoryObject.series_id !== seriesId)
-            console.log(seriesWatchHistoryObject.season_id !== seasonId)
-            console.log(seriesWatchHistoryObject.episode_id !== episodeId)
-            console.log(seriesWatchHistoryObject.series_id, seriesId, seriesWatchHistoryObject.season_id, seasonId, seriesWatchHistoryObject.episode_id, episodeId)
             if (watchHistoryObject !== null && (seriesWatchHistoryObject.series_id !== seriesId || seriesWatchHistoryObject.season_id !== seasonId || seriesWatchHistoryObject.episode_id !== episodeId)) {
                 responder(res, 400, 'error', 'Previous series watch history does not match the series');
                 return;
             };
 
         } catch (err) {
-            console.log(err)
             responder(res, 500, 'error', 'Internal server error');
             return;
         }
     } catch (err) {
-        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -827,7 +818,6 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
-        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -1107,6 +1097,94 @@ export const getWatchSeriesSubtitle = async (req: Request & { user?: User }, res
 };
 
 export const getProfileWatchHistory = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+    const profileId: string = req.params.profileId!;
+
+    //Make sure parameters are sumbitted
+    if (!req.params.profileId) {
+        responder(res, 400, 'error', 'ID parameters are required');
+        return;
+    }
+
+    //Make sure parameters are numbers
+    if (isNaN(Number(profileId))) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    //Make sure parameters are valid numbers
+    if (!validateNumbers([(Number(profileId))])) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    //Check if profile exists and if it matches the user
+    try {
+        const profileObject = await db.oneOrNone('SELECT * FROM Profile WHERE profile_id = $<profileId> AND account_id = $<accountId>', {
+            profileId: profileId,
+            accountId: req.user!.account_id
+        });
+
+        if (profileObject === null) {
+            responder(res, 401, 'error', 'Unauthorized');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    //Fetch all watch history entries for the profile and fetch the content associated with it
+    try {
+        const watchHistoryObject = await db.manyOrNone(`
+            SELECT * 
+            FROM watch_history
+            WHERE profile_id = $<profileId> 
+            AND event_type = $<eventType> 
+            ORDER BY watch_date DESC`, {
+            profileId: profileId,
+            eventType: 'End'
+        });
+
+    let watchHistoryArray: any[] = [];
+
+    await db.tx(async t => {
+        for (let i = 0; i < watchHistoryObject.length; i++) {
+            const watchHistory = watchHistoryObject[i];
+
+            const movieWatchHistoryObject = await t.oneOrNone(`
+            SELECT * 
+            FROM movie_watch_history AS mwh
+            JOIN movie AS m ON m.movie_id = mwh.movie_id
+            WHERE watch_history_id = $<watchHistoryId>`, {
+                watchHistoryId: watchHistory.watch_history_id
+            });
+
+            const seriesWatchHistoryObject = await t.oneOrNone(`
+            SELECT * 
+            FROM series_watch_history AS swh
+            JOIN series AS ser ON ser.series_id = swh.series_id
+            JOIN season AS sea ON sea.season_id = swh.season_id
+            JOIN episode AS ep ON ep.episode_id = swh.episode_id
+            WHERE watch_history_id = $<watchHistoryId>`, {
+                watchHistoryId: watchHistory.watch_history_id
+            });
+
+            if (movieWatchHistoryObject !== null) {
+                watchHistoryArray.push(movieWatchHistoryObject);
+            }
+
+            if (seriesWatchHistoryObject !== null) {
+                watchHistoryArray.push(seriesWatchHistoryObject);
+            }
+        }
+    });
+
+        responder(res, 200, 'success', watchHistoryArray);
+        return;
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
 };
 
 export const getProfilePersonalOffer = async (req: Request & { user?: User }, res: Response): Promise<void> => {
