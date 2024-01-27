@@ -373,9 +373,6 @@ export const getWatchMovieSubtitle = async (req: Request & { user?: User }, res:
             movieId: movieId
         });
 
-        await db.tx(async (t) => {
-        });
-
         try {
             const subtitleObject = await db.one(
                 `SELECT s.subtitle_location
@@ -398,8 +395,7 @@ export const getWatchMovieSubtitle = async (req: Request & { user?: User }, res:
     } catch (err) {
         responder(res, 500, 'error', 'Internal server error');
         return;
-    }
-
+    };
 };
 
 export const postStartWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
@@ -865,9 +861,237 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
 };
 
 export const getWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
+    interface episodeInfoObject {
+        series_id: number,
+        series_title: string,
+        season_title: string,
+        episode_id: number,
+        episode_title: string,
+        duration: string,
+    };
+
+    const seriesId: string = req.params.seriesId!;
+    const seasonId: string = req.params.seasonId!;
+    const episodeId: string = req.params.episodeId!;
+
+    //Make sure parameters are sumbitted
+    if (!req.params.seriesId || !req.params.seasonId || !req.params.episodeId) {
+        responder(res, 400, 'error', 'ID parameters are required');
+        return;
+    };
+
+    //Make sure parameters are numbers
+    if (isNaN(Number(seriesId)) || isNaN(Number(seasonId)) || isNaN(Number(episodeId))) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    };
+
+    //Make sure parameters are valid numbers
+    if (!validateNumbers([Number(seriesId), Number(seasonId), Number(episodeId)])) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    };
+
+    //Check if series exists
+
+    try {
+        const seriesObject = await db.oneOrNone('SELECT * FROM Series WHERE series_id = ${seriesId}', {
+            seriesId: seriesId
+        });
+
+        if (seriesObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    //Check if season exists
+
+    try {
+        const seasonObject = await db.oneOrNone('SELECT * FROM Season WHERE season_id = ${seasonId}', {
+            seasonId: seasonId
+        });
+
+        if (seasonObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    //Check if episode exists
+
+    try {
+        const episodeObject = await db.oneOrNone('SELECT * FROM Episode WHERE episode_id = ${episodeId}', {
+            episodeId: episodeId
+        });
+
+        if (episodeObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    //return content
+    try {
+    const seriesWatchHistoryObject: episodeInfoObject = await db.one(
+        `SELECT ser.series_id AS series_id, ser.title AS series_title, sea.season_id AS season_id, sea.title AS season_title, episode_id, ep.title AS episode_title, duration
+        FROM series AS ser
+        JOIN season AS sea ON sea.series_id = ser.series_id
+        JOIN episode AS ep ON ep.season_id = sea.season_id
+        WHERE ser.series_id = $<seriesId> AND sea.season_id = $<seasonId> AND ep.episode_id = $<episodeId>
+            `, {
+        seriesId: seriesId,
+        seasonId: seasonId,
+        episodeId: episodeId
+    })
+
+    responder(res, 200, 'success', seriesWatchHistoryObject);
+    return;
+
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+
 };
 
 export const getWatchSeriesSubtitle = async (req: Request & { user?: User }, res: Response): Promise<void> => {
+
+    interface episodeInfoObject {
+        series_id: number,
+        series_title: string,
+        season_title: string,
+        episode_id: number,
+        episode_title: string,
+        duration: string,
+    };
+
+    const seriesId: string = req.params.seriesId!;
+    const seasonId: string = req.params.seasonId!;
+    const episodeId: string = req.params.episodeId!;
+    const subtitleLanguage: string = req.query.language! ? req.query.language!.toString() : 'English'; //if user does not specify language then default to English
+
+    //Check if language is valid
+    if (!languageValidator(subtitleLanguage)) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    }
+
+    //Make sure parameters are sumbitted
+    if (!req.params.seriesId || !req.params.seasonId || !req.params.episodeId) {
+        responder(res, 400, 'error', 'ID parameters are required');
+        return;
+    };
+
+    //Make sure parameters are numbers
+    if (isNaN(Number(seriesId)) || isNaN(Number(seasonId)) || isNaN(Number(episodeId))) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    };
+
+    //Make sure parameters are valid numbers
+    if (!validateNumbers([Number(seriesId), Number(seasonId), Number(episodeId)])) {
+        responder(res, 400, 'error', 'Invalid Request');
+        return;
+    };
+
+    //Check if series exists
+
+    try {
+        const seriesObject = await db.oneOrNone('SELECT * FROM Series WHERE series_id = ${seriesId}', {
+            seriesId: seriesId
+        });
+
+        if (seriesObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
+    //Check if season exists
+    try {
+        const seasonObject = await db.oneOrNone('SELECT * FROM Season WHERE season_id = ${seasonId}', {
+            seasonId: seasonId
+        });
+
+        if (seasonObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return
+    }
+
+    //Check if episode exists
+    try {
+        const episodeObject = await db.oneOrNone('SELECT * FROM Episode WHERE episode_id = ${episodeId}', {
+            episodeId: episodeId
+        });
+
+        if (episodeObject === null) {
+            responder(res, 400, 'error', 'Content not found');
+            return;
+        }
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+    }
+
+    //return content
+    try {
+        const seriesWatchHistoryObject: episodeInfoObject = await db.one(
+            `SELECT ser.series_id AS series_id, ser.title AS series_title, sea.season_id AS season_id, sea.title AS season_title, episode_id, ep.title AS episode_title, duration
+            FROM series AS ser
+            JOIN season AS sea ON sea.series_id = ser.series_id
+            JOIN episode AS ep ON ep.season_id = sea.season_id
+            WHERE ser.series_id = $<seriesId> AND sea.season_id = $<seasonId> AND ep.episode_id = $<episodeId>
+                `, {
+            seriesId: seriesId,
+            seasonId: seasonId,
+            episodeId: episodeId
+        });
+        
+        try {
+            const subtitleObject = await db.one(
+                `SELECT s.subtitle_location
+                     FROM available_languages AS al
+                     JOIN subtitle AS s ON s.subtitle_id = al.subtitle_id
+                     JOIN languages AS l ON l.language_id = al.language_id
+                     WHERE l.language_name = $<languageName> AND al.series_id = $<seriesId>
+                     `, {
+                languageName: subtitleLanguage,
+                seriesId: seriesId,
+                seasonId: seasonId,
+                episodeId: episodeId
+            })
+
+            responder(res, 200, 'seriesWatchHistoryObject', seriesWatchHistoryObject, 'subtitleLocation', subtitleObject.subtitle_location);
+            return;
+
+        } catch (err) {
+            responder(res, 500, 'error', 'Internal server error');
+            return;
+        }
+       
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    }
+
 };
 
 export const getProfileWatchHistory = async (req: Request & { user?: User }, res: Response): Promise<void> => {

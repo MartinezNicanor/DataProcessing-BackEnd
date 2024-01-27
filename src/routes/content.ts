@@ -20,9 +20,9 @@ router.post('/profile/:profileId/watch-history/series/start', (req: Request, res
 
 router.post('/profile/:profileId/watch-history/series/end', (req: Request, res: Response) => postEndWatchSeries(req, res));
 
-router.get('/seriesId/:seriesId', (req: Request, res: Response) => getWatchSeries(req, res));
+router.get('/series/:seriesId/season/:seasonId/episode/:episodeId', (req: Request, res: Response) => getWatchSeries(req, res));
 
-router.get('/seriesId/:seriesId/subtitle', (req: Request, res: Response) => getWatchSeriesSubtitle(req, res));
+router.get('/series/:seriesId/season/:seasonId/episode/:episodeId/subtitle', (req: Request, res: Response) => getWatchSeriesSubtitle(req, res));
 
 router.get('/profile/:profileId/watch-history', (req: Request, res: Response) => getProfileWatchHistory(req, res));
 
