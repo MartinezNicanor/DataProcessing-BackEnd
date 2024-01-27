@@ -410,9 +410,9 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
     };
 
     const profileId: string = req.params.profileId!;
-    const seriesId: number = req.body.seriesId!;
-    const seasonId: number = req.body.seasonId!;
-    const episodeId: number = req.body.episodeId!;
+    const seriesId: number = Number(req.body.seriesId!);
+    const seasonId: number = Number(req.body.seasonId!);
+    const episodeId: number = Number(req.body.episodeId!);
 
     let episodeInfoObject: episodeInfoObject | null = null;
     let previousWatchHistoryObject: any;
@@ -608,7 +608,7 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
 
             // if previous watch history exists and its finished then check if its the last episode of the season or if its the last episode of the last season. If its not then start the next episode
             if (previousWatchHistoryObject && previousWatchHistoryObject.finished === true) {
-                if (watchHistoryEpisodeNumber === '4' && watchHistorySeasonNumber === '4') {
+                if ((Number(watchHistoryEpisodeNumber) % 4 === 0) && (Number(watchHistorySeasonNumber) % 4 === 0)) {
                     //start first episode of the first season
 
                     //Fetch the first episode of series
@@ -641,7 +641,7 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
                     });
                 };
 
-                if (watchHistoryEpisodeNumber === '4') {
+                if ((Number(watchHistoryEpisodeNumber) % 4 === 0)) {
                     //start first episode of the next season
                     const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
                         profileId: profileId,
@@ -688,9 +688,9 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
 export const postEndWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     const profileId: string = req.params.profileId!;
-    const seriesId: number = req.body.seriesId!;
-    const seasonId: number = req.body.seasonId!;
-    const episodeId: number = req.body.episodeId!;
+    const seriesId: number = Number(req.body.seriesId!);
+    const seasonId: number = Number(req.body.seasonId!);
+    const episodeId: number = Number(req.body.episodeId!);
     const endTime: string = req.body.endTime!;
 
     //Make sure parameters are sumbitted
@@ -741,6 +741,7 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
+        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -756,6 +757,7 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
+        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -771,6 +773,7 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
+        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -792,16 +795,23 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             };
 
             //Check if the series watch history matches the series so you wont be able to start a new series and end a different series
+            console.log((watchHistoryObject !== null && (seriesWatchHistoryObject.series_id !== seriesId || seriesWatchHistoryObject.season_id !== seasonId || seriesWatchHistoryObject.episode_id !== episodeId)))
+            console.log(seriesWatchHistoryObject.series_id !== seriesId)
+            console.log(seriesWatchHistoryObject.season_id !== seasonId)
+            console.log(seriesWatchHistoryObject.episode_id !== episodeId)
+            console.log(seriesWatchHistoryObject.series_id, seriesId, seriesWatchHistoryObject.season_id, seasonId, seriesWatchHistoryObject.episode_id, episodeId)
             if (watchHistoryObject !== null && (seriesWatchHistoryObject.series_id !== seriesId || seriesWatchHistoryObject.season_id !== seasonId || seriesWatchHistoryObject.episode_id !== episodeId)) {
                 responder(res, 400, 'error', 'Previous series watch history does not match the series');
                 return;
             };
 
         } catch (err) {
+            console.log(err)
             responder(res, 500, 'error', 'Internal server error');
             return;
         }
     } catch (err) {
+        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -817,6 +827,7 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
             return;
         }
     } catch (err) {
+        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
@@ -824,8 +835,8 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
     //Create new series watch entry
     try {
         await db.tx(async t => {
-            const seriesObject = await t.one('SELECT *, TO_CHAR(duration, \'HH24:MI:SS\') AS formatted_duration FROM series WHERE series_id = $<seriesId>', {
-                seriesId: seriesId
+            const seriesObject = await t.one('SELECT *, TO_CHAR(duration, \'HH24:MI:SS\') AS formatted_duration FROM episode WHERE episode_id = $<episodeId>', {
+                episodeId: episodeId
             });
 
             // Access the formatted duration from the result
@@ -855,6 +866,7 @@ export const postEndWatchSeries = async (req: Request & { user?: User }, res: Re
         responder(res, 201, 'success', 'Series watch history created');
         return;
     } catch (err) {
+        console.log(err)
         responder(res, 500, 'error', 'Internal server error');
         return;
     };
