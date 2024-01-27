@@ -404,10 +404,22 @@ export const getWatchMovieSubtitle = async (req: Request & { user?: User }, res:
 
 export const postStartWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
+    interface episodeInfoObject {
+        series_id: number,
+        series_title: string,
+        season_title: string,
+        episode_id: number,
+        episode_title: string,
+        duration: string,
+    };
+
     const profileId: string = req.params.profileId!;
     const seriesId: number = req.body.seriesId!;
     const seasonId: number = req.body.seasonId!;
     const episodeId: number = req.body.episodeId!;
+
+    let episodeInfoObject: episodeInfoObject | null = null;
+    let previousWatchHistoryObject: any;
 
     //Make sure parameters are sumbitted
     if (!req.params.profileId || !req.body.seriesId || !req.body.seasonId || !req.body.episodeId) {
@@ -500,141 +512,181 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
         responder(res, 500, 'error', 'Internal server error');
     }
 
-    //Check if in the watch history has any series watch history entries through multiple seasons and episodes is yes retrieve the latest one
-
+    //Create new series watch entry
+    //TODO check if the there is watch history entry associated with this series and if yes store it in a external variable (and make sure its not the last episode of the last season)
     try {
-        //join two tables and get the latest watch history entry
-        const watchHistoryObject = await db.oneOrNone(`
-        SELECT *
-        FROM watch_history AS wh
-        JOIN series_watch_history AS swh ON swh.watch_history_id = wh.watch_history_id
-        WHERE wh.profile_id = $<profileId> AND swh.series_id = $<seriesId> AND swh.season_id = $<seasonId> AND swh.episode_id = $<episodeId>
-        ORDER BY wh.watch_date DESC LIMIT 1
-        `, {
+        const watchHistoryObject = await db.oneOrNone(
+            `SELECT *
+             FROM watch_history AS wh
+             JOIN series_watch_history AS swh ON swh.watch_history_id = wh.watch_history_id
+             WHERE wh.profile_id = $<profileId> AND swh.series_id = $<seriesId> AND swh.season_id = $<seasonId> AND swh.episode_id = $<episodeId>
+             ORDER BY wh.watch_date DESC LIMIT 1
+             `, {
             profileId: profileId,
             seriesId: seriesId,
             seasonId: seasonId,
             episodeId: episodeId
         });
 
-
-        //If there is watch history entry then check if the series watch history entry is finished
-        if (watchHistoryObject !== null && watchHistoryObject.event_type === 'Start') {
-            responder(res, 400, 'error', 'Previous contents watch history has not ended yet');
-            return;
-        }
-
-        //if watch history entry does not exist then create a new one
-        if (watchHistoryObject === null) {
+        //If there is a watch history entry then extract the inforomation from the episode/season/series, make a table of them it and save it into a variable outside of the try catch block
+        if (watchHistoryObject !== null) {
+            previousWatchHistoryObject = watchHistoryObject;
             try {
-                await db.tx(async t => {
-
-                    const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
-                        profileId: profileId
-                    });
-
-                    const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
-                        profileId: profileId,
-                        eventType: 'Start',
-                        finished: false
-                    })
-
-                    await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
-                        seriesId: seriesId,
-                        seasonId: seasonId,
-                        episodeId: episodeId,
-                        pauseTime: '00:00:00',
-                        watchHistoryId: watchHisoryObject.watch_history_id,
-                        languageSettings: languageSettings.language
-                    });
-                });
-
-                responder(res, 201, 'success', 'Series watch history created');
-                return;
+                const seriesWatchHistoryObject: episodeInfoObject = await db.one(
+                    `SELECT ser.series_id AS series_id, ser.title AS series_title, sea.season_id AS season_id, sea.title AS season_title, episode_id, ep.title AS episode_title, duration
+                    FROM series AS ser
+                    JOIN season AS sea ON sea.series_id = ser.series_id
+                    JOIN episode AS ep ON ep.season_id = sea.season_id
+                    WHERE ser.series_id = $<seriesId> AND sea.season_id = $<seasonId> AND ep.episode_id = $<episodeId>
+                        `, {
+                    seriesId: watchHistoryObject.series_id,
+                    seasonId: watchHistoryObject.season_id,
+                    episodeId: watchHistoryObject.episode_id
+                })
+                episodeInfoObject = seriesWatchHistoryObject;
             } catch (err) {
                 responder(res, 500, 'error', 'Internal server error');
                 return;
             }
         }
-
-        //if there is watch history entry check if it has not finished then start the series from the same timestamp
-        if (watchHistoryObject !== null && watchHistoryObject.finished === false) {
-
-            try {
-                await db.tx(async t => {
-
-                    const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
-                        profileId: profileId
-                    });
-
-                    const startTime = await t.one('SELECT pause_time FROM series_watch_history WHERE watch_history_id = ${watchHistoryId}', {
-                        watchHistoryId: watchHistoryObject.watch_history_id
-                    });
-
-                    const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
-                        profileId: profileId,
-                        eventType: 'Start',
-                        finished: false
-                    })
-
-                    await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
-                        seriesId: seriesId,
-                        seasonId: seasonId,
-                        episodeId: episodeId,
-                        pauseTime: startTime.pause_time,
-                        watchHistoryId: watchHisoryObject.watch_history_id,
-                        languageSettings: languageSettings.language
-                    });
-                });
-
-                responder(res, 201, 'success', 'Series watch history created');
-                return;
-            } catch (err) {
-                responder(res, 500, 'error', 'Internal server error');
-                return;
-            }
-        }
-
-        if (watchHistoryObject !== null && watchHistoryObject.finished === true) {
-            try {
-                await db.tx(async t => {
-
-                    const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
-                        profileId: profileId
-                    });
-
-                    const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
-                        profileId: profileId,
-                        eventType: 'Start',
-                        finished: false
-                    });
-
-                    await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<language_settings>)', {
-                        seriesId: seriesId,
-                        seasonId: seasonId,
-                        episodeId: episodeId,
-                        pauseTime: '00:00:00',
-                        watchHistoryId: watchHisoryObject.watch_history_id,
-                        language_settings: languageSettings.language
-                    });
-                });
-
-                responder(res, 201, 'success', 'Series watch history created');
-                return;
-            } catch (err) {
-                responder(res, 500, 'error', 'Internal server error');
-                return;
-            }
-        }
-
     } catch (err) {
         responder(res, 500, 'error', 'Internal server error');
         return;
     }
 
-    responder(res, 200, 'success', 'Series watch history created');
-    return;
 
+    //Create new series watch entry
+    //TODO if there is no watch history entry then create a new one, if there is then continue it from pause time. 
+    //TODO If the episode is finised then start the next episode, 
+    //TODO if the season is finished then start the next season, 
+    //TODO if its the last episode of the last season then start from the beggining
+
+    try {
+        await db.tx(async t => {
+            const languageSettings = await t.oneOrNone('SELECT language FROM profile WHERE profile_id = ${profileId}', {
+                profileId: profileId
+            });
+
+            //Check if previous watch history does not exist so you can start the series from beggining
+            if (previousWatchHistoryObject === null) {
+                //If doesnt exist then start the series from beggining
+
+                const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                    profileId: profileId,
+                    eventType: 'Start',
+                    finished: false
+                })
+
+                await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
+                    seriesId: seriesId,
+                    seasonId: seasonId,
+                    episodeId: episodeId,
+                    pauseTime: '00:00:00',
+                    watchHistoryId: watchHisoryObject.watch_history_id,
+                    languageSettings: languageSettings.language
+                });
+            }
+            // if previous watch history exists then first check if its finished. If its not then continue from the pause time
+            if (previousWatchHistoryObject && previousWatchHistoryObject.finished === false) {
+
+                const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                    profileId: profileId,
+                    eventType: 'Start',
+                    finished: false
+                })
+
+                await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
+                    seriesId: seriesId,
+                    seasonId: seasonId,
+                    episodeId: episodeId,
+                    pauseTime: previousWatchHistoryObject.pause_time,
+                    watchHistoryId: watchHisoryObject.watch_history_id,
+                    languageSettings: languageSettings.language
+                });
+            }
+
+            const watchHistorySeasonNumber = episodeInfoObject!.season_title.split(' ')[1];
+            console.log(watchHistorySeasonNumber);
+            const watchHistoryEpisodeNumber = episodeInfoObject!.episode_title.split(' ')[1];
+            console.log(watchHistoryEpisodeNumber)
+
+            // if previous watch history exists and its finished then check if its the last episode of the season or if its the last episode of the last season. If its not then start the next episode
+            if (previousWatchHistoryObject && previousWatchHistoryObject.finished === true) {
+                if (watchHistoryEpisodeNumber === '4' && watchHistorySeasonNumber === '4') {
+                    //start first episode of the first season
+
+                    //Fetch the first episode of series
+                    const firstEpisodeObject = await t.one(`
+                     SELECT * 
+                     FROM series AS ser
+                     JOIN season AS sea ON sea.series_id = ser.series_id
+                     JOIN episode AS ep ON ep.season_id = sea.season_id
+                     WHERE ser.series_id = $<seriesId> AND sea.title = $<seasonTitle> AND ep.title = $<episodeTitle>
+                     `, {
+                        seriesId: seriesId,
+                        seasonTitle: 'Season 1',
+                        episodeTitle: 'Episode 1'
+                    });
+
+                    //start first episode of the next season
+                    const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                        profileId: profileId,
+                        eventType: 'Start',
+                        finished: false
+                    });
+
+                    await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
+                        seriesId: seriesId,
+                        seasonId: firstEpisodeObject.sea.season_id,
+                        episodeId: firstEpisodeObject.ep.episode_id,
+                        pauseTime: '00:00:00',
+                        watchHistoryId: watchHisoryObject.watch_history_id,
+                        languageSettings: languageSettings.language
+                    });
+                };
+
+                if (watchHistoryEpisodeNumber === '4') {
+                    //start first episode of the next season
+                    const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                        profileId: profileId,
+                        eventType: 'Start',
+                        finished: false
+                    });
+
+                    await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
+                        seriesId: seriesId,
+                        seasonId: seasonId + 1,
+                        episodeId: episodeId + 1,
+                        pauseTime: '00:00:00',
+                        watchHistoryId: watchHisoryObject.watch_history_id,
+                        languageSettings: languageSettings.language
+                    });
+                };
+
+                if (watchHistoryEpisodeNumber !== '4') {
+                    const watchHisoryObject = await t.one('INSERT INTO watch_history (profile_id, event_type, finished) VALUES ($<profileId>, $<eventType>, $<finished>) RETURNING watch_history_id', {
+                        profileId: profileId,
+                        eventType: 'Start',
+                        finished: false
+                    });
+
+                    await t.none('INSERT INTO series_watch_history (series_id, season_id, episode_id, pause_time, watch_history_id, language_settings) VALUES ($<seriesId>, $<seasonId>, $<episodeId>, $<pauseTime>, $<watchHistoryId>, $<languageSettings>)', {
+                        seriesId: seriesId,
+                        seasonId: seasonId,
+                        episodeId: episodeId + 1,
+                        pauseTime: '00:00:00',
+                        watchHistoryId: watchHisoryObject.watch_history_id,
+                        languageSettings: languageSettings.language
+                    });
+                };
+            };
+        });
+        responder(res, 201, 'success', 'Series watch history created');
+        return;
+    } catch (err) {
+        responder(res, 500, 'error', 'Internal server error');
+        return;
+    };
 };
 
 export const postEndWatchSeries = async (req: Request & { user?: User }, res: Response): Promise<void> => {
