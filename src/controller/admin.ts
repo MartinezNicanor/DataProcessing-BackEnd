@@ -3,11 +3,9 @@ import { isValidEmail, isValidPassword, validateNumbers, validateStrings } from 
 import jwtTokenGenerator from '../utils/jwt.generator';
 import { db } from '../db';
 import * as bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import responder from '../utils/responder';
 import { User } from '../types/user';
-import { userInfo } from 'os';
-import { profile } from 'console';
+
 
 export const postLoginAdmin = async (req: Request, res: Response) => {
     const email: string = req.body.email!;

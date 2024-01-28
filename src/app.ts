@@ -11,10 +11,6 @@ dotenv.config();
 //Initialize app
 const app = express(); 
 
-// Example function to run a simple query
-
-parseInt(process.env.PORT!)
-
 // Middlewares
 app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing

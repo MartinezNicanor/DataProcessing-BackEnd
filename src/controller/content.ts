@@ -550,7 +550,6 @@ export const postStartWatchSeries = async (req: Request & { user?: User }, res: 
         return;
     }
 
-
     /*Create new series watch entry
     if there is no watch history entry then create a new one, if there is then continue it from pause time. 
     if the episode is finised then start the next episode, 
