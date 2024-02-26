@@ -42,8 +42,8 @@ app.get('/favicon.ico', (req : Request, res : Response) => {
   });
 
 // Invalid routes
-app.get('*', (req: Request, res: Response) => {
-    res.status(404).send('Error Page 404');
+app.use('*', (req: Request, res: Response) => {
+  res.status(404).json({error: "Invalid route"});
 });
 
 // Export the fully configured app instance

@@ -13,5 +13,4 @@ router.patch('/password-reset/:token', (req: Request, res: Response) => patchPas
 router.get('/password-reset/:token', (req: Request, res: Response) => getPasswordResetVerification(req, res))
 
 
-
 export = router;

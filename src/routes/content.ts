@@ -28,4 +28,5 @@ router.get('/profile/:profileId/watch-history', (req: Request, res: Response) =>
 
 router.get('/profile/:profileId/presonal-offer', (req: Request, res: Response) => getProfilePersonalOffer(req, res));
 
+
 export = router;
