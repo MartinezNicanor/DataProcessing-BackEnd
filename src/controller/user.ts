@@ -2,14 +2,14 @@ import responder from "../utils/responder";
 import express, { Router, Request, Response } from "express";
 import { db } from '../db'
 import { User } from "../types/user";
-import { isValidEmail, validateStrings, validateNumbers, validateArrayStrings, stringDoesNotContainSpecialCharacters } from "../utils/validators";
+import { isValidEmail, validateStrings, validateNumbers, validateArrayStrings, stringDoesNotContainSpecialCharacters, invalidTypeValidator } from "../utils/validators";
 import jwtTokenGenerator from "../utils/jwt.generator";
 import sendEmail from "../utils/email.sender";
 
 export const postCreateNewProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     const profileName: string = req.body.profileName;
-    const age: number = (req.body.age !== null && req.body.age >= 0) ? Number(req.body.age) : 0  //make sure the age is not negative && it exists, otherwise null
+    const age: number = (req.body.age !== null && req.body.age >= 0 && req.body.age <= 150) ? Number(req.body.age) : 0  //make sure the age is not negative && it exists, otherwise null
     let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en'  // check for language, 
     let profile_image: string | null = req.file ? req.file.filename : null;
 
@@ -17,6 +17,11 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
     if (language.includes(",")) {
         const preferredLanguage: string[] = language.split(',')
         language = preferredLanguage[0].trim();
+    }
+
+    if(!invalidTypeValidator(age) && !invalidTypeValidator(profileName) && !invalidTypeValidator(language)){
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
     }
 
     //validate language header
@@ -60,7 +65,7 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
         //Insert the user information into DB
         try {
-            await db.none('INSERT INTO profile (account_id, profile_name, profile_image, age, language) VALUES ($<account_id>, $<profileName>, $<profile_image>, $<age>, $<language>)', {
+            const createdProfile = await db.one('INSERT INTO profile (account_id, profile_name, profile_image, age, language) VALUES ($<account_id>, $<profileName>, $<profile_image>, $<age>, $<language>) RETURNING *', {
                 account_id: req.user?.account_id,
                 profileName: profileName,
                 profile_image: profile_image,
@@ -68,9 +73,10 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
                 language: language
             });
 
-            // Successful insertion
-            responder(res, 201, 'message', 'Profile created successfully');
+            // Successful profile creation
+            responder(res, 201, 'profile', createdProfile);
             return;
+        
         } catch (err) {
             // Log the error for debugging
             responder(res, 500, 'error', 'Internal Server Error');

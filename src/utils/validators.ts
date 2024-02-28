@@ -41,7 +41,6 @@ function isValidPassword(password: string): Boolean {
 function validateStrings(strings: string[]): boolean {
   for (const str of strings) {
     if (str === undefined || str.trim() === '') {
-      console.error(`error: ${str} is not a valid string`);
       return false;
     }
   }
@@ -51,7 +50,6 @@ function validateStrings(strings: string[]): boolean {
 function validateNumbers(numbers: number[]): boolean {
   for (const num of numbers) {
     if (num === undefined || num < 0) {
-      console.error(`error: ${num} is not a valid number`);
       return false;
     }
   }
@@ -66,6 +64,18 @@ function validateArrayStrings(arr: string[][]): boolean {
   }
   return true;
 }
+
+function invalidTypeValidator(input: any): boolean {
+  if (typeof input === 'string' || typeof input === 'number' || typeof input === 'boolean') {
+    // Check if the input is falsy or a string representation of a falsy value
+    if (!input || ['false', '0', 'null', 'undefined', 'NaN'].includes(String(input).toLowerCase())) {
+        return false;
+    }
+    return true;
+}
+return false;
+}
+
 
 function isValidTimeInterval(timeInterval: string) {
   const [hours, minutes, seconds] = timeInterval.split(':').map(Number);
@@ -96,4 +106,4 @@ function stringDoesNotContainSpecialCharacters(str: string): boolean {
 }
 
 
-export { isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval, languageValidator, stringDoesNotContainSpecialCharacters };
+export { isValidEmail, isValidPassword, validateStrings, validateNumbers, validateArrayStrings, isValidTimeInterval, languageValidator, stringDoesNotContainSpecialCharacters, invalidTypeValidator };
