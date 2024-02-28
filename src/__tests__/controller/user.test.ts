@@ -12,12 +12,85 @@ const authHeader = {
     Authorization: `Bearer ${token}`
 };
 
+//TODO: Also check for auth header error messages by not submitting auth header or by submitting malformed jwt token
+//TODO: I can also check for wrong request method for testing
+
 describe('Rountes: /user ', () => {
 
-    describe("DELETE /current Delete Account", () => {
+    describe("DELETE /current Delete Profiles", () => {
+
+        //Delete All existing profiles and create one to not standardize test cases
+        beforeAll(async () => {
+            await db.none('DELETE FROM profile WHERE account_id = (SELECT account_id FROM account WHERE email = $1)', [testEmail]);
+
+            await supertest(app)
+                .post('/user/current/profiles')
+                .set(authHeader)
+                .field('profileName', 'joe');
+        });
+
+        describe("Successful Profile Deletions", () => {
+
+            //Create a new profile before each so there is always something to delete
+            beforeEach(async () => {
+                await supertest(app)
+                    .post('/user/current/profiles')
+                    .set(authHeader)
+                    .field('profileName', 'joe');
+            });
+
+            test('Valid Data Input, Successful Deletion, returns 200', async () => {
+                const randomProfile = await db.one('SELECT * FROM profile WHERE account_id = (SELECT account_id FROM account WHERE email = $1) ORDER BY profile_id DESC LIMIT 1', [testEmail]);
+                const response = await supertest(app)
+                    .delete(`user/current/profiles/${randomProfile.profile_id}`)
+                    .set(authHeader)
+                expect(response.status).toBe(200)
+                expect(response.body.message).toBe('Profile deleted successfully')
+            });
+        });
+
+        describe("Unsuccessful Profile Deletions", () => {
+
+            test('Profile ID is Not A Number, string, expects 400 and error message', async () => {
+                const response = await supertest(app)
+                    .delete(`user/curret/profiles/NotANumber`)
+                    .set(authHeader)
+                expect(response.status).toBe(400)
+                expect(response.body.error).toBe('Profile ID must be a number')
+            });
+
+            test('Invalid Input values, negative number, expect 400 and error message', async () => {
+            });
+
+            test('Invalide authorization header token, expects 401 and error message', async () => {
+
+            });
+
+            test('Profile Not found, wrong profile number, expects 400 and error message', async () => {
+
+            });
+
+            test('Incorrect request method, PUT request, expects status code and error message', async () => {
+
+                //! I am not sure what owuld happen here so i just need to find it out by trial and error.
+    
+            });
+
+        });
+
     });
 
     describe("POST /current/profiles  Profile Creation", () => {
+
+        //Delete All existing profiles and create one to not standardize test cases
+        beforeAll(async () => {
+            await db.none('DELETE FROM profile WHERE account_id = (SELECT account_id FROM account WHERE email = $1)', [testEmail]);
+
+            await supertest(app)
+                .post('/user/current/profiles')
+                .set(authHeader)
+                .field('profileName', 'joe');
+        });
 
         describe("Successful Profile Creations", () => {
 
@@ -151,12 +224,12 @@ describe('Rountes: /user ', () => {
 
             test('Empty name field, should return 400', async () => {
                 const response = await supertest(app)
-                .post('/user/current/profiles')
-                .set(authHeader)
-                .set({ 'accept-language': 'asd' })
-                .field('profileName', '')
-                .field('age', '25')
-                .attach('profilePicture', 'src/images/default.jpeg', 'default.jpeg')
+                    .post('/user/current/profiles')
+                    .set(authHeader)
+                    .set({ 'accept-language': 'asd' })
+                    .field('profileName', '')
+                    .field('age', '25')
+                    .attach('profilePicture', 'src/images/default.jpeg', 'default.jpeg')
                 expect(response.status).toBe(400);
                 expect(response.body.error).toEqual('Invalid input values');
             });
@@ -203,7 +276,7 @@ describe('Rountes: /user ', () => {
     describe("PATCH /current/profiles/:profileId   Profile Update", () => {
     });
 
-    describe("DELETE /current/profiles/:profileId   Profile Delete", () => {
+    describe("DELETE /current/profiles/:profileId   Account Delete", () => {
     });
 
     describe("PATCH /current/new-billing-date   Update Billing Date", () => {
