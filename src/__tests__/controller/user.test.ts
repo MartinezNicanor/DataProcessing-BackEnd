@@ -362,35 +362,103 @@ describe('Rountes: /user ', () => {
 
         describe("Successful Profile Retrieval", () => {
 
-            test('Valid profile request', async () => {
+            let fetchedProfile: any = null;
+
+            //Find a profile with the correct account_id and profile_id and return it
+            beforeEach(async () => {
+                const randomProfile = await db.one('SELECT * FROM profile WHERE account_id = (SELECT account_id FROM account WHERE email = $<email>) ORDER BY profile_id DESC LIMIT 1', { email: testEmail });
+                fetchedProfile = randomProfile;
             });
 
-            test('', async () => {
-            });
 
-            test('', async () => {
+            test('Valid information provided, successful profile retrieval, should return 200 and profile object', async () => {
+                const response = await supertest(app)
+                    .get(`/user/current/profiles/${fetchedProfile.profile_id}`)
+                    .set(authHeader)
+                expect(response.status).toBe(200);
+                expect(response.body.profile.profile_name).toBe('joe');
+                expect(response.body.profile.age).toBe(0);
+                expect(response.body.profile.language).toBe('en');
+                expect(response.body.profile.preferences.movie).toEqual([]);
+                expect(response.body.profile.preferences.series).toEqual([]);
+                expect(response.body.profile.preferences.min_age).toEqual([]);
+                expect(response.body.profile.preferences.viewing_class).toEqual([]);
             });
-
-            test('', async () => {
-            });
-
         });
 
         describe("Unsuccessful Profile Retrieval", () => {
 
-            test('', async () => {
+            test('Invalid ID provided, negative number, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .get(`/user/current/profiles/-1`)
+                    .set(authHeader)
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
             });
 
-            test('', async () => {
+            test('Invalid ID provided, ID number does not exist, should return 404 and error message', async () => {
+                const response = await supertest(app)
+                    .get(`/user/current/profiles/999999999`)
+                    .set(authHeader)
+                expect(response.status).toBe(404);
+                expect(response.body.error).toBe('Profile not found');
             });
 
-            test('', async () => {
-            });
+            describe('Profile ID and authorization header token missmatch', () => {
+                let otherAccountProfile: any = null;
 
-            test('', async () => {
+                //Insert a new account & profile directly into db to test the case
+                beforeAll(async () => {
+                    await db.none(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+                    VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+                    $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+                    $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>)`, {
+                        email: "test@gmail.com",
+                        password: "hashedPassword",
+                        first_name: "firstName",
+                        last_name: "lastName",
+                        active_subscription: false,
+                        blocked: false,
+                        verified: false,
+                        street: "street",
+                        zip_code: "zipCode",
+                        country_id: 5,
+                        log_in_attempt_count: 0,
+                        invited: false,
+                        user_type: 'User'
+                    });
+
+                    const createdProfile = await db.one(`INSERT INTO Profile (account_id, profile_name, age, language, profile_image, preferences) 
+                    VALUES ((SELECT account_id FROM account WHERE email = $<email>), $<profile_name>, $<age>, $<language>, $<profile_image>, $<preferences>) RETURNING *`, {
+                        email: "test@gmail.com",
+                        profile_name: "testProfile",
+                        age: 25,
+                        language: "en",
+                        profile_image: "profilePicture",
+                        preferences: {
+                            movie: [],
+                            series: [],
+                            min_age: [],
+                            viewing_class: []
+                        }
+                    });
+                    otherAccountProfile = createdProfile;
+                });
+
+                afterAll(async () => {
+                    await db.none('DELETE FROM account WHERE email = $<email>',
+                        { email: "test@gmail.com" });
+                });
+
+                test.only('Invalid ID provided, user account does not match the profile account requested', async () => {
+                    const response = await supertest(app)
+                        .get(`/user/current/profiles/${otherAccountProfile.profile_id}`)
+                        .set(authHeader)
+                    expect(response.status).toBe(401);
+                    expect(response.body.error).toBe('Unauthorized');
+                });
             });
         });
-
     });
 
     describe("PATCH /current/profiles/:profileId   Profile Update", () => {
