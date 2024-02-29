@@ -13,4 +13,6 @@ module.exports = {
     testEnvironmentOptions: {
       url: `http://localhost:${process.env.PORT}`,
     },
+    forceExit: true,
+    verbose: true,
   }
