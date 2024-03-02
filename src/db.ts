@@ -1,7 +1,5 @@
-import { TINYINT } from 'sequelize';
 import pgPromise from 'pg-promise' ;
 import { IDatabase, IMain } from 'pg-promise';
-import { QueryFile, IQueryFileOptions } from 'pg-promise';
 import * as dotenv from 'dotenv';
 
 dotenv.config();

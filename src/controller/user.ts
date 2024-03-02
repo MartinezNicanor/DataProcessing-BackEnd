@@ -2,14 +2,14 @@ import responder from "../utils/responder";
 import express, { Router, Request, Response } from "express";
 import { db } from '../db'
 import { User } from "../types/user";
-import { isValidEmail, validateStrings, validateNumbers, validateArrayStrings, stringDoesNotContainSpecialCharacters } from "../utils/validators";
+import { isValidEmail, validateStrings, validateNumbers, validateArrayStrings, stringDoesNotContainSpecialCharacters, invalidTypeValidator } from "../utils/validators";
 import jwtTokenGenerator from "../utils/jwt.generator";
 import sendEmail from "../utils/email.sender";
 
 export const postCreateNewProfile = async (req: Request & { user?: User }, res: Response): Promise<void> => {
 
     const profileName: string = req.body.profileName;
-    const age: number = (req.body.age !== null && req.body.age >= 0) ? Number(req.body.age) : 0  //make sure the age is not negative && it exists, otherwise null
+    const age: number = (req.body.age !== null && req.body.age >= 0 && req.body.age <= 150) ? Number(req.body.age) : 0  //make sure the age is not negative && it exists, otherwise null
     let language: string = req.headers['accept-language'] ? req.headers['accept-language'] : 'en'  // check for language, 
     let profile_image: string | null = req.file ? req.file.filename : null;
 
@@ -17,6 +17,11 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
     if (language.includes(",")) {
         const preferredLanguage: string[] = language.split(',')
         language = preferredLanguage[0].trim();
+    }
+
+    if(!invalidTypeValidator(age) && !invalidTypeValidator(profileName) && !invalidTypeValidator(language)){
+        responder(res, 400, 'error', 'Invalid input values');
+        return;
     }
 
     //validate language header
@@ -60,7 +65,7 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
 
         //Insert the user information into DB
         try {
-            await db.none('INSERT INTO profile (account_id, profile_name, profile_image, age, language) VALUES ($<account_id>, $<profileName>, $<profile_image>, $<age>, $<language>)', {
+            const createdProfile = await db.one('INSERT INTO profile (account_id, profile_name, profile_image, age, language) VALUES ($<account_id>, $<profileName>, $<profile_image>, $<age>, $<language>) RETURNING *', {
                 account_id: req.user?.account_id,
                 profileName: profileName,
                 profile_image: profile_image,
@@ -68,9 +73,10 @@ export const postCreateNewProfile = async (req: Request & { user?: User }, res: 
                 language: language
             });
 
-            // Successful insertion
-            responder(res, 201, 'message', 'Profile created successfully');
+            // Successful profile creation
+            responder(res, 201, 'profile', createdProfile);
             return;
+        
         } catch (err) {
             // Log the error for debugging
             responder(res, 500, 'error', 'Internal Server Error');
@@ -147,6 +153,13 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
         language = preferredLanguage[0].trim();
     };
 
+    if (profileName === null || profileName === undefined || profileName === '') { 
+        const currentProfileName = await db.one('SELECT profile_name FROM profile WHERE profile_id = ${profile_id}', {
+            profile_id: profile_id
+        });
+        profileName = currentProfileName.profile_name;
+    }
+
     //validate language header
     if (!isNaN(Number(language)) || language.length! > 6 || !stringDoesNotContainSpecialCharacters(language)) {
         console
@@ -155,22 +168,24 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
     };
 
     //validate strings
-    if (validateStrings([profileName, language]) === false) {
+    if (validateStrings([profileName, language]) === false || !isNaN(Number(profileName))) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     };
 
     //Check if profile id is a valid string number
     if (isNaN(Number(profile_id))) {
-        responder(res, 400, 'error', 'Profile ID must be a number');
+        responder(res, 400, 'error', 'Invalid input values');
         return;
     };
 
     //validate numbers values
-    if (validateNumbers([Number(profile_id), age]) === false) {
+    if (validateNumbers([Number(profile_id)]) === false) {
+        console.log(validateNumbers([Number(profile_id)]));
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    };
+    }
+
 
     //get profile from db
     try {
@@ -206,7 +221,7 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
 
         //Update the profile
         try {
-            await db.none('UPDATE Profile SET profile_name = $<profileName>, profile_image = $<profile_image>, age = $<age>, language = $<language> WHERE profile_id = $<profile_id>', {
+          const updatedProfile = await db.one('UPDATE Profile SET profile_name = $<profileName>, profile_image = $<profile_image>, age = $<age>, language = $<language> WHERE profile_id = $<profile_id> RETURNING *', {
                 profileName: profileName,
                 profile_image: profile_image,
                 age: age,
@@ -214,7 +229,7 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
                 profile_id: profile_id
             });
 
-            responder(res, 200, 'message', 'Profile updated successfully');
+            responder(res, 200, 'message', updatedProfile);
         } catch (err) {
             responder(res, 500, 'error', 'Internal Server Error');
             return;
@@ -437,12 +452,12 @@ export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, 
 
     //Update the billing date
     try {
-        await db.none('UPDATE account_subscription SET billing_date = $<newBillingDate> WHERE account_id = $<account_id>', {
+        const billingDateObject = await db.one('UPDATE account_subscription SET billing_date = $<newBillingDate> WHERE account_id = $<account_id> RETURNING *', {
             newBillingDate: newBillingDate,
             account_id: req.user?.account_id
         });
 
-        responder(res, 200, 'message', 'Billing date updated successfully');
+        responder(res, 200, 'message', billingDateObject);
         return;
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
@@ -457,12 +472,31 @@ export const patchUpdatePaymentMethod = async (req: Request & { user?: User }, r
 
     const possiblePaymentMethods: string[] = ['PayPal', 'Visa', 'MasterCard', 'Apple Pay', 'Google Pay', 'iDEAL'];
 
+    if (!paymentMethod) {
+        responder(res, 400, 'error', 'Possible payment methods not provided');
+        return;
+    }
+
+    if (!isNaN(Number(paymentMethod))) {
+        responder(res, 400, 'error', 'Payment method must be a string');
+        return;
+    }
+
+    if (isNaN(Number(subscriptionId))) {
+        responder(res, 400, 'error', 'Subscription ID must be a number');
+        return;
+    }
+
     //validate input values
     if (validateStrings([paymentMethod]) === false || possiblePaymentMethods.includes(paymentMethod) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     };
 
+    if (!subscriptionId) {
+        responder(res, 400, 'error', 'Subscription ID is required');
+        return;
+    };
     //validate input values
     if (validateNumbers([subscriptionId]) === false || subscriptionId > 3) {
         responder(res, 400, 'error', 'Invalid input values');

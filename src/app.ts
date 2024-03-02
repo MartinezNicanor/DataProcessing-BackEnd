@@ -11,10 +11,6 @@ dotenv.config();
 //Initialize app
 const app = express(); 
 
-// Example function to run a simple query
-
-parseInt(process.env.PORT!)
-
 // Middlewares
 app.use(bodyParser.json());
 app.use(cors()); //Cross origin resource sharing
@@ -46,8 +42,8 @@ app.get('/favicon.ico', (req : Request, res : Response) => {
   });
 
 // Invalid routes
-app.get('*', (req: Request, res: Response) => {
-    res.status(404).send('Error Page 404');
+app.use('*', (req: Request, res: Response) => {
+  res.status(404).json({error: "Invalid route"});
 });
 
 // Export the fully configured app instance

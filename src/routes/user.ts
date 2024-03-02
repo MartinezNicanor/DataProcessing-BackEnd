@@ -29,10 +29,10 @@ router.delete('/current/profiles/:profileId', (req: Request, res: Response) => d
 router.patch('/current/profiles/:profileId/preferences', (req: Request, res: Response) => patchUpdateProfilePreferences(req, res));
 
 // Send invitation to a user
-router.post('/current/sendInvite', (req: Request, res: Response) => postSendInvitation(req, res)); 
+router.post('/current/send-invite', (req: Request, res: Response) => postSendInvitation(req, res)); 
 
 // Update the new billing date
-router.patch('/current/newBillingDate', (req: Request, res: Response) => patchUpdateNewBillingDate(req, res));
+router.patch('/current/new-billing-date', (req: Request, res: Response) => patchUpdateNewBillingDate(req, res));
 
 // Update the payment method
 router.patch('/current/subscription', (req: Request, res: Response) => patchUpdatePaymentMethod(req, res));

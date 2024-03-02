@@ -10,7 +10,8 @@
     "clean": "rimraf dist",
     "copy-static": "copyfiles -u 1 src/static/**/* dist",
     "copy-images": "copyfiles -u 1 src/images/**/* dist/",
-    "test": "jest"
+    "test": "jest",
+    "testcoverage": "jest --coverage --verbose"
   },
   "author": "",
   "license": "ISC",
