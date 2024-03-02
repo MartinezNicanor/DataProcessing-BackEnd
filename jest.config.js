@@ -9,7 +9,10 @@ module.exports = {
     "transform": {
       "^.+\\.(ts|tsx)$": "ts-jest"
     },
+    testPathIgnorePatterns: ["/node_modules/", "/__tests__/utils/"],
     testEnvironmentOptions: {
       url: `http://localhost:${process.env.PORT}`,
     },
+    forceExit: true,
+    verbose: true,
   }

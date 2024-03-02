@@ -42,8 +42,6 @@ function jwtTokenGenerator(time : string , ...args : string[]): string {
         data[key] = value;
     }
 
-    console.log(data)
-
     const token: string = jwt.sign({data}, process.env.JWT_SECRET, { expiresIn: time });
     return token;
 }
