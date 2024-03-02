@@ -153,6 +153,13 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
         language = preferredLanguage[0].trim();
     };
 
+    if (profileName === null || profileName === undefined || profileName === '') { 
+        const currentProfileName = await db.one('SELECT profile_name FROM profile WHERE profile_id = ${profile_id}', {
+            profile_id: profile_id
+        });
+        profileName = currentProfileName.profile_name;
+    }
+
     //validate language header
     if (!isNaN(Number(language)) || language.length! > 6 || !stringDoesNotContainSpecialCharacters(language)) {
         console
@@ -161,22 +168,24 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
     };
 
     //validate strings
-    if (validateStrings([profileName, language]) === false) {
+    if (validateStrings([profileName, language]) === false || !isNaN(Number(profileName))) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     };
 
     //Check if profile id is a valid string number
     if (isNaN(Number(profile_id))) {
-        responder(res, 400, 'error', 'Profile ID must be a number');
+        responder(res, 400, 'error', 'Invalid input values');
         return;
     };
 
     //validate numbers values
-    if (validateNumbers([Number(profile_id), age]) === false) {
+    if (validateNumbers([Number(profile_id)]) === false) {
+        console.log(validateNumbers([Number(profile_id)]));
         responder(res, 400, 'error', 'Invalid input values');
         return;
-    };
+    }
+
 
     //get profile from db
     try {
@@ -212,7 +221,7 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
 
         //Update the profile
         try {
-            await db.none('UPDATE Profile SET profile_name = $<profileName>, profile_image = $<profile_image>, age = $<age>, language = $<language> WHERE profile_id = $<profile_id>', {
+          const updatedProfile = await db.one('UPDATE Profile SET profile_name = $<profileName>, profile_image = $<profile_image>, age = $<age>, language = $<language> WHERE profile_id = $<profile_id> RETURNING *', {
                 profileName: profileName,
                 profile_image: profile_image,
                 age: age,
@@ -220,7 +229,7 @@ export const patchUpdateProfile = async (req: Request & { user?: User }, res: Re
                 profile_id: profile_id
             });
 
-            responder(res, 200, 'message', 'Profile updated successfully');
+            responder(res, 200, 'message', updatedProfile);
         } catch (err) {
             responder(res, 500, 'error', 'Internal Server Error');
             return;
@@ -443,12 +452,12 @@ export const patchUpdateNewBillingDate = async (req: Request & { user?: User }, 
 
     //Update the billing date
     try {
-        await db.none('UPDATE account_subscription SET billing_date = $<newBillingDate> WHERE account_id = $<account_id>', {
+        const billingDateObject = await db.one('UPDATE account_subscription SET billing_date = $<newBillingDate> WHERE account_id = $<account_id> RETURNING *', {
             newBillingDate: newBillingDate,
             account_id: req.user?.account_id
         });
 
-        responder(res, 200, 'message', 'Billing date updated successfully');
+        responder(res, 200, 'message', billingDateObject);
         return;
     } catch (err) {
         responder(res, 500, 'error', 'Internal Server Error');
@@ -463,12 +472,31 @@ export const patchUpdatePaymentMethod = async (req: Request & { user?: User }, r
 
     const possiblePaymentMethods: string[] = ['PayPal', 'Visa', 'MasterCard', 'Apple Pay', 'Google Pay', 'iDEAL'];
 
+    if (!paymentMethod) {
+        responder(res, 400, 'error', 'Possible payment methods not provided');
+        return;
+    }
+
+    if (!isNaN(Number(paymentMethod))) {
+        responder(res, 400, 'error', 'Payment method must be a string');
+        return;
+    }
+
+    if (isNaN(Number(subscriptionId))) {
+        responder(res, 400, 'error', 'Subscription ID must be a number');
+        return;
+    }
+
     //validate input values
     if (validateStrings([paymentMethod]) === false || possiblePaymentMethods.includes(paymentMethod) === false) {
         responder(res, 400, 'error', 'Invalid input values');
         return;
     };
 
+    if (!subscriptionId) {
+        responder(res, 400, 'error', 'Subscription ID is required');
+        return;
+    };
     //validate input values
     if (validateNumbers([subscriptionId]) === false || subscriptionId > 3) {
         responder(res, 400, 'error', 'Invalid input values');

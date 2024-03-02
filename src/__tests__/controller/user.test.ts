@@ -354,6 +354,37 @@ describe('Rountes: /user ', () => {
                     expect(response.status).toBe(400);
                     expect(response.body.error).toEqual('Maximum number of profiles have been created');
                 });
+
+                test('Invalid information submitted, Authentication token missing, should return 400 and error message', async () => {
+                    const response = await supertest(app)
+                        .post('/user/current/profiles')
+                    expect(response.status).toBe(401);
+                    expect(response.body.error).toBe('Token not found');
+                });
+
+                test('Invalid information submitted, Authentication token edited, should return 400 and error message', async () => {
+                    const response = await supertest(app)
+                        .post('/user/current/profiles')
+                        .set({ Authorization: 'Bearer some token' })
+                    expect(response.status).toBe(401);
+                    expect(response.body.error).toBe('Malformed or Invalid JWT token');
+                });
+
+                test('Invalid information submitted, wrong purpose token, should return 400 and error message', async () => {
+                    const response = await supertest(app)
+                        .post('/user/current/profiles')
+                        .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'not authentication') })
+                    expect(response.status).toBe(401);
+                    expect(response.body.error).toBe('Not Authorized');
+                });
+
+                test('Invalid information submitted, wrong hhtp method, should return 400 and error message', async () => {
+                    const response = await supertest(app)
+                        .get('/user/current/profiles')
+                        .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'authentication') })
+                    expect(response.status).toBe(404);
+                    expect(response.body.error).toBe('Invalid route');
+                });
             });
         });
     });
@@ -450,7 +481,7 @@ describe('Rountes: /user ', () => {
                         { email: "test@gmail.com" });
                 });
 
-                test.only('Invalid ID provided, user account does not match the profile account requested', async () => {
+                test('Invalid ID provided, user account does not match the profile account requested', async () => {
                     const response = await supertest(app)
                         .get(`/user/current/profiles/${otherAccountProfile.profile_id}`)
                         .set(authHeader)
@@ -465,80 +496,348 @@ describe('Rountes: /user ', () => {
 
         describe("Successful Profile Update", () => {
 
-            test('', async () => {
+            let testProfile: any = null;
+
+            beforeEach(async () => {
+                //Create a new profile before each so there is always something to change
+                const randomProfile = await supertest(app)
+                    .post('/user/current/profiles')
+                    .set(authHeader)
+                    .field('profileName', 'joe');
+                testProfile = randomProfile;
             });
 
-            test('', async () => {
+            afterEach(async () => {
+                //delete the user profiles after each test so it doesnt affect the next test
+                const randomProfile = await db.one('SELECT * FROM profile WHERE account_id = (SELECT account_id FROM account WHERE email = $<email>) ORDER BY profile_id DESC LIMIT 1', { email: testEmail });
+                await supertest(app).delete(`/user/current/profiles/${randomProfile.profile_id}`).set(authHeader);
             });
 
-            test('', async () => {
+
+            test('Valid information submitted, name changed, successful response with status 200', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.body.profile.profile_id}`)
+                    .set(authHeader)
+                    .field('profileName', 'newName')
+                console.log(response.error)
+                expect(response.status).toBe(200);
+                expect(response.body.message.profile_name).toBe('newName');
             });
 
-            test('', async () => {
+            test('Valid infromation submitted, age changed, successful response with status 200', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.body.profile.profile_id}`)
+                    .set(authHeader)
+                    .field('age', '25')
+                console.log(response.body)
+                console.log(response.error)
+                expect(response.status).toBe(200);
+                expect(response.body.message.age).toBe(25);
             });
 
-            test('', async () => {
+            test('Valid information submitted, profile picture changed, successful response with status 200', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.body.profile.profile_id}`)
+                    .set(authHeader)
+                    .attach('profilePicture', 'src/images/default.jpeg', 'testimagename.jpeg')
+                expect(response.status).toBe(200);
+                expect(response.body.message.profile_image.replace(/[0-9]/g, '')).toBe('testimagename.jpeg');
+            });
+
+            test('Valid information submitted, language changed, successful response with status 200', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.body.profile.profile_id}`)
+                    .set(authHeader)
+                    .set({ 'accept-language': 'hu' })
+                expect(response.status).toBe(200);
+                expect(response.body.message.language).toBe('hu');
             });
         });
 
         describe("Unsuccessful Profile Update", () => {
 
-            test('', async () => {
+            let testProfile: any = null;
+
+            beforeAll(async () => {
+                //Create a new profile before each so there is always something to call
+                await supertest(app)
+                    .post('/user/current/profiles')
+                    .set(authHeader)
+                    .field('profileName', 'joe');
+
+                const randomProfile = await db.one('SELECT * FROM profile WHERE account_id = (SELECT account_id FROM account WHERE email = $<email>) ORDER BY profile_id DESC LIMIT 1', { email: testEmail });
+                testProfile = randomProfile;
             });
 
-            test('', async () => {
+            afterAll(async () => {
+                //delete the user profiles after all test so it doesnt affect the next test
+                await supertest(app).delete(`/user/current/profiles/${testProfile.profile_id}`).set(authHeader);
             });
 
-            test('', async () => {
+            test('Invalid information submitted, name, number submitted, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.profile_id}`)
+                    .set(authHeader)
+                    .field('profileName', 123)
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, language, more than 6 characters, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.profile_id}`)
+                    .set(authHeader)
+                    .set({ 'accept-language': 'Hungary' })
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, language, number, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.profile_id}`)
+                    .set(authHeader)
+                    .set({ 'accept-language': 123 })
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
+            });
+
+            test('Invalid information submitted, language, special character, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/${testProfile.profile_id}`)
+                    .set(authHeader)
+                    .set({ 'accept-language': '$$$' })
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
+            });
+
+            test('Invalid information submitted, profileID, NaN, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/NotANumber`)
+                    .set(authHeader)
+                    .field('profileName', 'joe')
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
+            });
+
+            test('Invalid information submitted, profileID, negative number, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/-25`)
+                    .set(authHeader)
+                    .field('profileName', 'joe')
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
+            });
+
+            test('Invalid information submitted, profileID, None existent account, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/9999`)
+                    .set(authHeader)
+                    .field('profileName', 'joe')
+                expect(response.status).toBe(404);
+                expect(response.body.error).toBe('Profile not found');
+            });
+
+            test('Invalid information submitted, Authentication token missing, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/99999999`)
+                    .field('profileName', 'joe')
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Token not found');
+            });
+
+            test('Invalid information submitted, Authentication token edited, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/99999999`)
+                    .set({ Authorization: 'Bearer some token' })
+                    .field('profileName', 'joe')
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Malformed or Invalid JWT token');
+            });
+
+            test('Invalid information submitted, wrong purpose token, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'not authentication') })
+                    .field('profileName', 'joe')
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Not Authorized');
+            });
+
+            test('Invalid information submitted, someone elses token, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/profiles/99999999`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', 'test@gmail.com', 'purpose', 'not authentication') })
+                    .field('profileName', 'joe')
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Not Authorized');
+            });
+
+            describe('Profile ID and authorization header token missmatch', () => {
+                let otherAccountProfile: any = null;
+
+                //Insert a new account & profile directly into db to test the case
+                beforeAll(async () => {
+                    await db.none(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+                    VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+                    $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+                    $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>)`, {
+                        email: "test@gmail.com",
+                        password: "hashedPassword",
+                        first_name: "firstName",
+                        last_name: "lastName",
+                        active_subscription: false,
+                        blocked: false,
+                        verified: false,
+                        street: "street",
+                        zip_code: "zipCode",
+                        country_id: 5,
+                        log_in_attempt_count: 0,
+                        invited: false,
+                        user_type: 'User'
+                    });
+
+                    const createdProfile = await db.one(`INSERT INTO Profile (account_id, profile_name, age, language, profile_image, preferences) 
+                    VALUES ((SELECT account_id FROM account WHERE email = $<email>), $<profile_name>, $<age>, $<language>, $<profile_image>, $<preferences>) RETURNING *`, {
+                        email: "test@gmail.com",
+                        profile_name: "testProfile",
+                        age: 25,
+                        language: "en",
+                        profile_image: "profilePicture",
+                        preferences: {
+                            movie: [],
+                            series: [],
+                            min_age: [],
+                            viewing_class: []
+                        }
+                    });
+                    otherAccountProfile = createdProfile;
+                });
+
+                //Delete the account after testing to not affect other tests
+                afterAll(async () => {
+                    await db.none('DELETE FROM account WHERE email = $<email>',
+                        { email: "test@gmail.com" });
+                });
+
+                test('Unauthorized profile deletion: Profile ID does not match the account credentials, expects 401 and error message', async () => {
+                    const response = await supertest(app)
+                        .patch(`/user/current/profiles/${otherAccountProfile.profile_id}`)
+                        .set(authHeader)
+                        .field('profileName', 'joe')
+                    expect(response.status).toBe(404)
+                    expect(response.body.error).toBe('Profile not found')
+                });
             });
         });
-
     });
 
     describe("DELETE /current/profiles/:profileId   Account Delete", () => {
 
         describe("Successful Account Deletion", () => {
 
-            test('', async () => {
+            let testAccount: any = null;
+            let testAccountToken: any = jwtTokenGenerator('24h', 'email', "test@gmail.com", 'purpose', 'authentication');
+            let testAccountAuthHeader: any = { Authorization: `Bearer ${testAccountToken}` }
+
+            //Insert a new account & profile directly into db to test the case
+            beforeAll(async () => {
+                const createdAccount = await db.one(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+                    VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+                    $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+                    $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>) RETURNING *`, {
+                    email: "test@gmail.com",
+                    password: "hashedPassword",
+                    first_name: "firstName",
+                    last_name: "lastName",
+                    active_subscription: false,
+                    blocked: false,
+                    verified: true,
+                    street: "street",
+                    zip_code: "zipCode",
+                    country_id: 5,
+                    log_in_attempt_count: 0,
+                    invited: false,
+                    user_type: 'User'
+                });
+
+                testAccount = createdAccount;
             });
 
-            test('', async () => {
+            test('Valid inputs, successful account deletion, returns 200 and message', async () => {
+                const response = await supertest(app)
+                    .delete(`/user/current`)
+                    .set(testAccountAuthHeader)
+                console.log(response.error)
+                expect(response.status).toBe(200);
+                expect(response.body.message).toBe('Account deleted successfully');
             });
-
-            test('', async () => {
-            });
-
-            test('', async () => {
-            });
-
-            test('', async () => {
-            });
-
         });
 
         describe("Unsuccessful Account Deletion", () => {
 
-            test('', async () => {
+            let testAccount: any = null;
+            let testAccountToken: any = jwtTokenGenerator('24h', 'email', "test@gmail.com", 'purpose', 'authentication');
+            let testAccountAuthHeader: any = { Authorization: `Bearer ${testAccountToken}` }
+
+            //Insert a new account & profile directly into db to test the case
+            beforeAll(async () => {
+                const createdAccount = await db.one(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+                    VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+                    $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+                    $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>) RETURNING *`, {
+                    email: "test@gmail.com",
+                    password: "hashedPassword",
+                    first_name: "firstName",
+                    last_name: "lastName",
+                    active_subscription: false,
+                    blocked: false,
+                    verified: true,
+                    street: "street",
+                    zip_code: "zipCode",
+                    country_id: 5,
+                    log_in_attempt_count: 0,
+                    invited: false,
+                    user_type: 'User'
+                });
+
+                testAccount = createdAccount;
             });
 
-            test('', async () => {
+            afterAll(async () => {
+                await db.none('DELETE FROM account WHERE email = $<email>',
+                    { email: "test@gmail.com" });
             });
 
-            test('', async () => {
+            test('Invalid information submitted, Authentication token missing, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .delete(`/user/current`)
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Token not found');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, Authentication token edited, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .delete(`/user/current`)
+                    .set({ Authorization: 'Bearer some token' })
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Malformed or Invalid JWT token');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, wrong purpose token, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .delete(`/user/current`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'not authentication') })
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Not Authorized');
             });
 
+            test('Invalid information submitted, wrong hhtp method, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .get(`/user/current`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'authentication') })
+                expect(response.status).toBe(404);
+                expect(response.body.error).toBe('Invalid route');
+            });
         });
     });
 
@@ -546,37 +845,150 @@ describe('Rountes: /user ', () => {
 
         describe("Successful Billing Date Update", () => {
 
-            test('', async () => {
+            let testAccount: any = null;
+            let testAccountToken: any = jwtTokenGenerator('24h', 'email', "test@gmail.com", 'purpose', 'authentication');
+            let testAccountAuthHeader: any = { Authorization: `Bearer ${testAccountToken}` }
+
+
+            beforeAll(async () => {
+
+                //Insert a new account & profile directly into db to test the case
+
+                const createdAccount = await db.one(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+                        VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+                        $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+                        $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>)
+                        RETURNING *`, {
+                    email: "test@gmail.com",
+                    password: "hashedPassword",
+                    first_name: "firstName",
+                    last_name: "lastName",
+                    active_subscription: false,
+                    blocked: false,
+                    verified: true,
+                    street: "street",
+                    zip_code: "zipCode",
+                    country_id: 5,
+                    log_in_attempt_count: 1,
+                    invited: false,
+                    user_type: 'User'
+                });
+                testAccount = createdAccount;
+
+                console.log(testAccount)
+
+                //Insert a new account_subscription directly into db to test the case
+                const createdAccountSubscription = await db.one(`INSERT INTO account_subscription (account_id, subscription_id, payment_method, price, billing_date) 
+                        VALUES ($<account_id>, $<subscription_id>, $<payment_method>, $<price>, $<billing_date>)
+                        RETURNING *`, {
+                    account_id: testAccount.account_id,
+                    subscription_id: 1,
+                    price: 10,
+                    billing_date: new Date(Date.now() - 604800000).toISOString(),
+                    payment_method: 'Visa'
+                });
+
+                console.log(createdAccountSubscription)
+
             });
 
-            test('', async () => {
+            afterAll(async () => {
+                await db.none('DELETE FROM account WHERE email = $<email>',
+                    { email: "test@gmail.com" });
             });
 
-            test('', async () => {
-            });
-
-            test('', async () => {
-            });
-
-            test('', async () => {
+            test('Valid request, successful billing date update', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/new-billing-date`)
+                    .set(testAccountAuthHeader)
+                expect(response.status).toBe(200);
+                const newBillingDate = new Date(Date.now() + 29 * 24 * 60 * 60 * 1000).toISOString();
+                expect(response.body.message.billing_date.split('T')[0]).toBe(newBillingDate.split('T')[0]);
             });
         });
 
         describe("Unsuccessful Billing Date Update", () => {
 
-            test('', async () => {
+            let testAccount: any = null;
+            let testAccountToken: any = jwtTokenGenerator('24h', 'email', "test@gmail.com", 'purpose', 'authentication');
+            let testAccountAuthHeader: any = { Authorization: `Bearer ${testAccountToken}` }
+
+            //Insert a new account & profile directly into db to test the case
+            beforeAll(async () => {
+                const createdAccount = await db.one(`INSERT INTO Account (email, password, first_name, last_name, active_subscription, blocked, verified, street, zip_code, country_id, log_in_attempt_count, invited, user_type) 
+                    VALUES ($<email>, $<password>, $<first_name>, $<last_name>, 
+                    $<active_subscription>, $<blocked>, $<verified>, $<street>, $<zip_code>,
+                    $<country_id>, $<log_in_attempt_count>, $<invited>, $<user_type>) RETURNING *`, {
+                    email: "test@gmail.com",
+                    password: "hashedPassword",
+                    first_name: "firstName",
+                    last_name: "lastName",
+                    active_subscription: false,
+                    blocked: false,
+                    verified: true,
+                    street: "street",
+                    zip_code: "zipCode",
+                    country_id: 5,
+                    log_in_attempt_count: 0,
+                    invited: false,
+                    user_type: 'User'
+                });
+
+                testAccount = createdAccount;
+
+                const createdAccountSubscription = await db.one(`INSERT INTO account_subscription (account_id, subscription_id, payment_method, price, billing_date) 
+                VALUES ($<account_id>, $<subscription_id>, $<payment_method>, $<price>, $<billing_date>)
+                RETURNING *`, {
+                    account_id: testAccount.account_id,
+                    subscription_id: 1,
+                    price: 10,
+                    billing_date: new Date(Date.now() - 604800000).toISOString(),
+                    payment_method: 'Visa'
+                });
             });
 
-            test('', async () => {
+            afterAll(async () => {
+                await db.none('DELETE FROM account WHERE email = $<email>',
+                    { email: "test@gmail.com" });
             });
 
-            test('', async () => {
+            test('Invalid information submitted, Authentication token missing, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/new-billing-date`)
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Token not found');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, Authentication token edited, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/new-billing-date`)
+                    .set({ Authorization: 'Bearer some token' })
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Malformed or Invalid JWT token');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, wrong purpose token, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/new-billing-date`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'not authentication') })
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Not Authorized');
+            });
+
+            test('Invalid information submitted, someone elses token, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/new-billing-date`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', 'someotheremail@gmail.com', 'purpose', 'authentication') })
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('User not found in the database');
+            });
+
+            test('Invalid information submitted, wrong rest method, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .get(`/user/current/new-billing-date`)
+                    .set(testAccountAuthHeader)
+                expect(response.status).toBe(404);
+                expect(response.body.error).toBe('Invalid route');
             });
         });
     });
@@ -585,38 +997,238 @@ describe('Rountes: /user ', () => {
 
         describe("Successful Payment Method Update", () => {
 
-            test('', async () => {
-            });
+            test('Valid information submitted, succesful payment method update, visa, response 200 and message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Visa',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(200);
+                expect(response.body.message).toBe('Payment method updated successfully');
 
-            test('', async () => {
             });
-
-            test('', async () => {
+            test('Valid information submitted, succesful payment method update, PayPal, response 200 and message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'PayPal',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(200);
+                expect(response.body.message).toBe('Payment method updated successfully');
             });
-
-            test('', async () => {
+            test('Valid information submitted, succesful payment method update, MasterCard, response 200 and message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'MasterCard',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(200);
+                expect(response.body.message).toBe('Payment method updated successfully');
             });
-
-            test('', async () => {
+            test('Valid information submitted, succesful payment method update, Apple Pay, response 200 and message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Apple Pay',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(200);
+                expect(response.body.message).toBe('Payment method updated successfully');
+            });
+            test('Valid information submitted, succesful payment method update, Google Pay, response 200 and message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Google Pay',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(200);
+                expect(response.body.message).toBe('Payment method updated successfully');
+            });
+            test('Valid information submitted, succesful payment method update, iDEAL, response 200 and message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'iDEAL',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(200);
+                expect(response.body.message).toBe('Payment method updated successfully');
             });
         });
 
         describe("Unsuccessful Payment Method Update", () => {
 
-            test('', async () => {
+            test('Invalid information submitted. missing body, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Possible payment methods not provided');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, missing subscription id, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Visa'
+                    });
+                console.log(response.error)
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Subscription ID must be a number');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, missing payment method, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Possible payment methods not provided');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, invalid payment method, numbers, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 123,
+                        subscription_id: '1'
+                    });
+                console.log(response.error)
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Payment method must be a string');
             });
 
-            test('', async () => {
+            test('Invalid information submitted, invalid payment method,  negative numbers, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: -123,
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Payment method must be a string');
             });
+
+            test('Invalid information submitted, invalid payment method, special characters, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: '@@',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
+            });
+
+            test('Invalid information submitted, invalid payment method, falsy value, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: '',
+                        subscription_id: '1'
+                    });
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Possible payment methods not provided');
+            });
+
+            test('Invalid information submitted, invalid subscription id, out of range more than 3, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Visa',
+                        subscription_id: '4'
+                    });
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
+            });
+
+            test('Invalid information submitted, invalid subscription id, out of range less than 0, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Visa',
+                        subscription_id: '-1'
+                    });
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Invalid input values');
+            });
+
+            test('Invalid information submitted, invalid subscription id, NaN, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Visa',
+                        subscription_id: 'NotANumber'
+                    });
+                console.log(response.error)
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Subscription ID must be a number');
+            });
+
+            test('Invalid information submitted, invalid subscription id, falsy value, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set(authHeader)
+                    .send({
+                        payment_method: 'Visa',
+                        subscription_id: ''
+                    });
+                expect(response.status).toBe(400);
+                expect(response.body.error).toBe('Subscription ID is required');
+            });
+
+            test('Invalid information submitted, Authentication token missing, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Token not found');
+            });
+
+            test('Invalid information submitted, Authentication token edited, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set({ Authorization: 'Bearer some token' })
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Malformed or Invalid JWT token');
+            });
+
+            test('Invalid information submitted, wrong purpose token, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .patch(`/user/current/subscription`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'not authentication') })
+                expect(response.status).toBe(401);
+                expect(response.body.error).toBe('Not Authorized');
+            });
+
+            test('Invalid information submitted, wrong hhtp method, should return 400 and error message', async () => {
+                const response = await supertest(app)
+                    .get(`/user/current/subscription`)
+                    .set({ Authorization: jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'authentication') })
+                expect(response.status).toBe(404);
+                expect(response.body.error).toBe('Invalid route');
+            });
+
+
         });
     });
 });
