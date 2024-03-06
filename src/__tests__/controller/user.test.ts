@@ -3,16 +3,13 @@ import app from '../../app';
 import jwtTokenGenerator from '../../utils/jwt.generator';
 import { db } from '../../db';
 
-const testEmail = 'zsombor1.hajzer@gmail.com';
+const testEmail = 'insert email here!!!';
 
 const token = jwtTokenGenerator('24h', 'email', testEmail, 'purpose', 'authentication'); // Provide valid string arguments here
 
 const authHeader = {
     Authorization: `Bearer ${token}`
 };
-
-//TODO: Also check for auth header error messages by not submitting auth header or by submitting malformed jwt token
-//TODO: I can also check for wrong request method for testing
 
 describe('Rountes: /user ', () => {
 
