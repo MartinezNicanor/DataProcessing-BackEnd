@@ -2,8 +2,6 @@ import supertest from 'supertest';
 import app from '../../app';
 import jwtTokenGenerator from '../../utils/jwt.generator';
 import { db } from '../../db';
-import { after } from 'node:test';
-
 
 const testEmail = 'zsombor1.hajzer@gmail.com';
 
@@ -31,7 +29,6 @@ describe('Rountes: /user ', () => {
         });
 
         describe("Successful Profile Deletions", () => {
-
             //Create a new profile before each so there is always something to delete
             beforeEach(async () => {
                 await supertest(app)

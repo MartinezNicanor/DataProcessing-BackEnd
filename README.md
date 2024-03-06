@@ -82,5 +82,22 @@ Accepted langauges header is also used to infer the langauge the user uses when 
 
 
  
+## Testing
+The Testfiles can be found under src/\_\_test\_\_/controller.user.test.ts
 
-## Database setup
+For the TestFile to function properly, one existent account in the database is needed (it also has to be verified). You can achieve this by following the steps described in 4th point under the backend necessary information part.
+
+Navigate to the controller.user.test.ts file and at top of the page there will be a testEmail variable: 
+
+```
+const testEmail = 'insert email here';
+```
+
+Here insert your existing verified accounts email adress.
+
+
+Once that is done the only thing that is neccessery to be done is to open the terminal in the project folder and run the command: 
+
+```
+npm test
+```
